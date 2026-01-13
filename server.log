@@ -1,0 +1,8 @@
+
+> woocommerce-bff-muo@1.0.0 start
+> node src/server.js
+
+[32m[2025-12-29T15:50:34.821Z] INFO [0m ✅ Cache initialized (TTL: 300s, Check: 600s)
+[32m[2025-12-29T15:50:34.932Z] INFO [0m 🚀 BFF Server running on port 3000
+[32m[2025-12-29T15:50:34.939Z] INFO [0m 📱 Environment: development
+[32m[2025-12-29T15:50:34.940Z] INFO [0m 🔗 API Base URL: http://localhost:3000/api/v1
