@@ -32,6 +32,14 @@ const API_VERSION = process.env.API_VERSION || 'v1';
 // Trust proxy - important for rate limiting behind reverse proxies
 app.set('trust proxy', 1);
 
+// URL Normalization Middleware
+app.use((req, res, next) => {
+  if (req.url.startsWith('//')) {
+    req.url = req.url.replace(/^\/+/, '/');
+  }
+  next();
+});
+
 // Security Middleware
 app.use(helmet({
   contentSecurityPolicy: {
