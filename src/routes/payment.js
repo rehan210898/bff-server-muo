@@ -5,12 +5,20 @@ const wooCommerceClient = require('../services/woocommerceClient');
 const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
 
 // Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+let razorpay;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+  });
+} else {
+  console.warn('⚠️ Razorpay keys missing. Payment routes will fail.');
+}
 
 router.post('/razorpay-order', asyncHandler(async (req, res) => {
+  if (!razorpay) {
+    throw new ValidationError('Payment service unavailable (Configuration missing)');
+  }
   const { order_id } = req.body;
   
   if (!order_id) {

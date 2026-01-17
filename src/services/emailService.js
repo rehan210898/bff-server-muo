@@ -3,16 +3,26 @@ const logger = require('../utils/logger');
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS // App Password
-      }
-    });
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      this.transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS // App Password
+        }
+      });
+    } else {
+      logger.warn('⚠️ Email credentials missing. Email sending will be disabled.');
+      this.transporter = null;
+    }
   }
 
   async sendVerificationEmail(to, token, firstName) {
+    if (!this.transporter) {
+      logger.warn(`🚫 Email service disabled. Would have sent verification to ${to}`);
+      return false; // Or throw, depending on desired strictness. Returning false allows flow to continue without crash.
+    }
+
     const verificationLink = `${process.env.APP_DEEP_LINK_SCHEME}://auth/verify?token=${token}`;
     
     // Fallback if deep link scheme isn't set, though it should be for mobile
@@ -46,6 +56,10 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(to, token) {
+     if (!this.transporter) {
+        logger.warn(`🚫 Email service disabled. Would have sent reset to ${to}`);
+        return false;
+     }
      const resetLink = `${process.env.APP_DEEP_LINK_SCHEME}://auth/reset-password?token=${token}`;
      const mailOptions = {
       from: `"WooCommerce App" <${process.env.EMAIL_USER}>`,

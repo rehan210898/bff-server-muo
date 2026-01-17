@@ -11,11 +11,16 @@ const logger = require('../utils/logger');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d';
 
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
+let googleClient;
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI) {
+  googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+} else {
+  logger.warn('⚠️ Google OAuth credentials missing. Google Auth will fail.');
+}
 
 // Helper to generate token
 const generateToken = (user) => {
@@ -209,12 +214,18 @@ router.post('/login', asyncHandler(async (req, res) => {
 // GET /api/v1/auth/google
 // Initiates the flow - usually redirects the user's browser
 router.get('/google', (req, res) => {
+  if (!googleClient) {
+    return res.status(503).send('Google OAuth not configured');
+  }
   const redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.GOOGLE_REDIRECT_URI)}&response_type=code&scope=email%20profile`;
   res.redirect(redirectUrl);
 });
 
 // GET /api/v1/auth/google/callback
 router.get('/google/callback', asyncHandler(async (req, res) => {
+  if (!googleClient) {
+    throw new ValidationError('Google OAuth not configured');
+  }
   const { code } = req.query;
   
   // 1. Exchange code for tokens
@@ -258,7 +269,8 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   
   // 5. Redirect back to Mobile App via Deep Link
   // App scheme: muoapp://auth-callback?token=...
-  const appRedirect = `${process.env.APP_DEEP_LINK_SCHEME}://auth-callback?token=${jwtToken}&uId=${user.id}`;
+  const scheme = process.env.APP_DEEP_LINK_SCHEME || 'muoapp';
+  const appRedirect = `${scheme}://auth-callback?token=${jwtToken}&uId=${user.id}`;
   
   res.redirect(appRedirect);
 }));
