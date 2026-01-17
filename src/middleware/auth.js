@@ -11,6 +11,22 @@ const MAX_REQUESTS = 60; // 60 requests per minute per user
  * Simple but effective API key authentication for mobile app
  */
 const validateApiKey = (req, res, next) => {
+  // Public paths that don't require API Key (Browser callbacks, etc.)
+  const publicPaths = [
+    '/auth/google',
+    '/auth/google/callback',
+    '/auth/verify-email-redirect',
+    '/health'
+  ];
+
+  // Check if current path starts with any public path
+  // We use req.path or req.originalUrl. req.originalUrl is safer as it's the full URL.
+  const isPublic = publicPaths.some(path => req.originalUrl.includes(path));
+
+  if (isPublic) {
+    return next();
+  }
+
   // BYPASS AUTH IN DEVELOPMENT for easier browser testing
   if (process.env.NODE_ENV === 'development') {
     return next();
