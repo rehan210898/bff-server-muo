@@ -227,6 +227,10 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
     throw new ValidationError('Google OAuth not configured');
   }
   const { code } = req.query;
+
+  if (!code) {
+    throw new ValidationError('Authorization code is missing. Do not access this URL directly.');
+  }
   
   // 1. Exchange code for tokens
   const { tokens } = await googleClient.getToken({
