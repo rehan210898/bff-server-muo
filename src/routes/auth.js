@@ -217,7 +217,16 @@ router.get('/google', (req, res) => {
   if (!googleClient) {
     return res.status(503).send('Google OAuth not configured');
   }
-  const redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.GOOGLE_REDIRECT_URI)}&response_type=code&scope=email%20profile`;
+  
+  // Capture dynamic redirect scheme (e.g. from Expo Go)
+  const state = req.query.redirect_scheme ? Buffer.from(JSON.stringify({ scheme: req.query.redirect_scheme })).toString('base64') : undefined;
+  
+  let redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.GOOGLE_REDIRECT_URI)}&response_type=code&scope=email%20profile`;
+
+  if (state) {
+    redirectUrl += `&state=${state}`;
+  }
+  
   res.redirect(redirectUrl);
 });
 
@@ -226,10 +235,24 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   if (!googleClient) {
     throw new ValidationError('Google OAuth not configured');
   }
-  const { code } = req.query;
+  const { code, state } = req.query;
 
   if (!code) {
     throw new ValidationError('Authorization code is missing. Do not access this URL directly.');
+  }
+
+  // Determine Redirect Scheme
+  let scheme = process.env.APP_DEEP_LINK_SCHEME || 'muoapp';
+
+  if (state) {
+    try {
+      const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+      if (decodedState.scheme) {
+        scheme = decodedState.scheme;
+      }
+    } catch (e) {
+      logger.warn('Failed to decode OAuth state:', e);
+    }
   }
   
   // 1. Exchange code for tokens
@@ -273,7 +296,6 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   
   // 5. Redirect back to Mobile App via Deep Link
   // App scheme: muoapp://auth-callback?token=...
-  const scheme = process.env.APP_DEEP_LINK_SCHEME || 'muoapp';
   const appRedirect = `${scheme}://auth-callback?token=${jwtToken}&uId=${user.id}`;
   
   // Return HTML page to handle the deep link
