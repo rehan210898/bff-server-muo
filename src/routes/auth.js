@@ -276,7 +276,37 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   const scheme = process.env.APP_DEEP_LINK_SCHEME || 'muoapp';
   const appRedirect = `${scheme}://auth-callback?token=${jwtToken}&uId=${user.id}`;
   
-  res.redirect(appRedirect);
+  // Return HTML page to handle the deep link
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Login Successful</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background: #f9eceb; color: #4A1615; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        .btn { display: inline-block; background: #661F1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+        .success-icon { font-size: 48px; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="success-icon">✅</div>
+        <h2>Authentication Successful</h2>
+        <p>You have successfully logged in with Google.</p>
+        <p>Opening the app...</p>
+        <a href="${appRedirect}" class="btn">Open App</a>
+      </div>
+      <script>
+        // Attempt to open the app automatically
+        setTimeout(function() {
+          window.location.href = "${appRedirect}";
+        }, 1000);
+      </script>
+    </body>
+    </html>
+  `);
 }));
 
 // GET /api/v1/auth/verify-email-redirect/:token
