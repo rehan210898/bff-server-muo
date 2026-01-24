@@ -50,10 +50,10 @@ const getHomeLayout = async () => {
         }
       },
        {
-        type: 'category_grid',
+        type: 'brand_grid',
         title: 'Top Brands',
         data: {
-          ids: [403, 42, 122, 99, 18, 75, 24], // Blue Heaven, Lakme, MARS, Hilary Rhoda
+          ids: [223, 135, 132, 163, 146, 221, 46], // Lakme, Blue Heaven, MARS, Hilary Rhoda, Swiss Beauty, Maybelline, MeOn
           images: [
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp', // Eyeshadow
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp', // Foundation

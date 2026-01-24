@@ -24,6 +24,7 @@ const authRoutes = require('./routes/auth');
 const paymentRoutes = require('./routes/payment');
 const storeRoutes = require('./routes/store');
 const configRoutes = require('./routes/config');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -128,6 +129,7 @@ app.use(`/api/${API_VERSION}/layout`, layoutRoutes);
 app.use(`/api/${API_VERSION}/payment`, paymentRoutes);
 app.use(`/api/${API_VERSION}/store`, storeRoutes);
 app.use(`/api/${API_VERSION}/config`, configRoutes);
+app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
 
 // Root Route
 app.get('/', (req, res) => {
