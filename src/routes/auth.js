@@ -270,7 +270,7 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   const { email, given_name, family_name, sub } = payload; // sub is Google ID
 
   // 3. Check if user exists in WC
-  let customers = await wooCommerceClient.get('/customers', { email }, { useCache: false });
+  let customers = await wooCommerceClient.get('/customers', { email, role: 'all' }, { useCache: false });
   let user;
 
   if (customers.length === 0) {

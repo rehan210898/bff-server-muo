@@ -53,7 +53,7 @@ const getHomeLayout = async () => {
         type: 'category_grid',
         title: 'Top Brands',
         data: {
-          ids: [114, 42, 122, 99, 18, 75, 24], // Blue Heaven, Lakme, MARS, Hilary Rhoda
+          ids: [403, 42, 122, 99, 18, 75, 24], // Blue Heaven, Lakme, MARS, Hilary Rhoda
           images: [
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp', // Eyeshadow
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp', // Foundation
@@ -160,7 +160,7 @@ const getHomeLayout = async () => {
         title: 'Season Favorites',
         data: {
           query_type: 'ids',
-          ids: [9199, 9191, 9183, 9164, 9156, 9199, 9191, 9183, 9164, 9156, 9199, 9191, 9183, 9164, 9156],
+          ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117, 9107, 9099, 9089, 9084, 9048, 9042],
           images: [
            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp', // Eyeshadow
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp', // Foundation
