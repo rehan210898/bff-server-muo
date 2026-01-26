@@ -175,12 +175,20 @@ router.post('/resend-verification', asyncHandler(async (req, res) => {
 
 // POST /api/v1/auth/login
 router.post('/login', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { login, email, password } = req.body;
+  const userLogin = login || email; // Support both fields for backward compatibility
 
-  if (!email || !password) throw new ValidationError('Credentials required');
+  if (!userLogin || !password) throw new ValidationError('Credentials required');
 
-  // 1. Find customer
-  const customers = await wooCommerceClient.get('/customers', { email, role: 'all' }, { useCache: false });
+  // 1. Try to find customer by Email
+  let customers = await wooCommerceClient.get('/customers', { email: userLogin, role: 'all' }, { useCache: false });
+  
+  // 2. If not found, try to find by Username (using search param, WC doesn't support direct username filter perfectly)
+  if (customers.length === 0) {
+     // Search can match email or name, so we need to filter exact username match manually
+     const searchResults = await wooCommerceClient.get('/customers', { search: userLogin, role: 'all' }, { useCache: false });
+     customers = searchResults.filter(c => c.username === userLogin);
+  }
   
   if (customers.length === 0) {
     throw new AuthenticationError('Invalid credentials');
@@ -192,7 +200,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   // As established, we cannot verify WP hashes.
   // In production, you would hit a custom WP endpoint or use a JWT plugin on WP.
   // For this exercise, we proceed if user exists.
-  logger.warn(`⚠️  Bypassing password verification for ${email}`);
+  logger.warn(`⚠️  Bypassing password verification for ${userLogin}`);
 
   const token = generateToken(user);
 
@@ -204,7 +212,8 @@ router.post('/login', asyncHandler(async (req, res) => {
       email: user.email,
       firstName: user.first_name,
       lastName: user.last_name,
-      avatar: user.avatar_url
+      avatar: user.avatar_url,
+      username: user.username
     }
   });
 }));
