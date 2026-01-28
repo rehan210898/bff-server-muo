@@ -125,16 +125,16 @@ const getHomeLayout = async () => {
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-32.webp', // Highlighter
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-31.webp', // Lipstick
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-14.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-13.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-12.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-11.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-10.webp'
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-14.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-13.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-12.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-11.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-10.webp'
           ]
         }
       },
@@ -167,16 +167,16 @@ const getHomeLayout = async () => {
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-32.webp', // Highlighter
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-31.webp', // Lipstick
             'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-14.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-13.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-12.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-11.webp',
-             'http://makeupocean.com/wp-content/uploads/2026/01/img-2-10.webp'
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-14.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-13.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-12.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-11.webp',
+             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-10.webp'
           ]
         }
       },

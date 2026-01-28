@@ -304,8 +304,18 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   const jwtToken = generateToken(user);
   
   // 5. Redirect back to Mobile App via Deep Link
-  // App scheme: muoapp://auth-callback?token=...
-  const appRedirect = `${scheme}://auth-callback?token=${jwtToken}&uId=${user.id}`;
+  // Pass full user info so frontend doesn't need to fetch it
+  const params = new URLSearchParams({
+    token: jwtToken,
+    uId: user.id,
+    email: user.email,
+    firstName: user.first_name || '',
+    lastName: user.last_name || '',
+    username: user.username || '',
+    avatar: user.avatar_url || ''
+  });
+  
+  const appRedirect = `${scheme}://auth-callback?${params.toString()}`;
   
   // Return HTML page to handle the deep link
   res.send(`
