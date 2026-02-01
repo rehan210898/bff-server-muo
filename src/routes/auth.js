@@ -1,12 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const { OAuth2Client } = require('google-auth-library');
 const wooCommerceClient = require('../services/woocommerceClient');
 const verificationService = require('../services/verificationService');
 const usernameService = require('../services/usernameService');
 const { asyncHandler, ValidationError, UnauthorizedError: AuthenticationError, NotFoundError } = require('../middleware/errorHandler');
+const { validationRules } = require('../middleware/validate');
 const logger = require('../utils/logger');
+
+// Stricter rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login requests per windowMs
+  message: { success: false, message: 'Too many login attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'development',
+});
+
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 registration attempts per hour
+  message: { success: false, message: 'Too many registration attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'development',
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d';
@@ -34,11 +55,8 @@ const generateToken = (user) => {
 // --- VALIDATION ENDPOINTS ---
 
 // POST /api/v1/auth/check-email
-router.post('/check-email', asyncHandler(async (req, res) => {
+router.post('/check-email', validationRules.checkEmail, asyncHandler(async (req, res) => {
   const { email } = req.body;
-  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-    throw new ValidationError('Invalid email format');
-  }
 
   // Check WooCommerce
   const customers = await wooCommerceClient.get('/customers', { email }, { useCache: false });
@@ -62,10 +80,8 @@ router.post('/generate-username', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/v1/auth/check-username
-router.post('/check-username', asyncHandler(async (req, res) => {
+router.post('/check-username', validationRules.checkUsername, asyncHandler(async (req, res) => {
   const { username } = req.body;
-  if (!username) throw new ValidationError('Username required');
-
   const available = await usernameService.isUsernameAvailable(username);
   res.json({ available });
 }));
@@ -74,15 +90,10 @@ router.post('/check-username', asyncHandler(async (req, res) => {
 // --- REGISTRATION FLOW ---
 
 // POST /api/v1/auth/register
-router.post('/register', asyncHandler(async (req, res) => {
+router.post('/register', registrationLimiter, validationRules.register, asyncHandler(async (req, res) => {
   const { email, password, firstName, lastName, username } = req.body;
 
-  // Basic Validation
-  if (!email || !password || !firstName || !username) {
-    throw new ValidationError('All fields are required');
-  }
-
-  // 1. Verify Uniqueness again (Race condition check)
+  // Verify Uniqueness (Race condition check)
   const customers = await wooCommerceClient.get('/customers', { email }, { useCache: false });
   if (customers.length > 0) {
     throw new ValidationError('User already exists');
@@ -174,11 +185,9 @@ router.post('/resend-verification', asyncHandler(async (req, res) => {
 // --- MOBILE OTP FLOW --- (Removed)
 
 // POST /api/v1/auth/login
-router.post('/login', asyncHandler(async (req, res) => {
+router.post('/login', authLimiter, validationRules.login, asyncHandler(async (req, res) => {
   const { login, email, password } = req.body;
   const userLogin = login || email; // Support both fields for backward compatibility
-
-  if (!userLogin || !password) throw new ValidationError('Credentials required');
 
   // 1. Try to find customer by Email
   let customers = await wooCommerceClient.get('/customers', { email: userLogin, role: 'all' }, { useCache: false });
@@ -219,6 +228,81 @@ router.post('/login', asyncHandler(async (req, res) => {
 }));
 
 // --- GOOGLE OAUTH ---
+
+// POST /api/v1/auth/google/token
+// Token exchange endpoint for expo-auth-session (mobile app sends Google access token)
+router.post('/google/token', asyncHandler(async (req, res) => {
+  const { access_token } = req.body;
+
+  if (!access_token) {
+    throw new ValidationError('Access token is required');
+  }
+
+  try {
+    // Fetch user info from Google using the access token
+    const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+
+    if (!response.ok) {
+      throw new ValidationError('Invalid Google access token');
+    }
+
+    const googleUser = await response.json();
+    const { email, given_name, family_name, id: googleId, picture } = googleUser;
+
+    if (!email) {
+      throw new ValidationError('Could not retrieve email from Google');
+    }
+
+    // Check if user exists in WooCommerce
+    let customers = await wooCommerceClient.get('/customers', { email, role: 'all' }, { useCache: false });
+    let user;
+
+    if (customers.length === 0) {
+      // Create new user automatically
+      const username = `g_${email.split('@')[0]}_${Math.floor(Math.random() * 1000)}`;
+      const password = `G!${Math.random().toString(36).slice(-10)}`;
+
+      user = await wooCommerceClient.post('/customers', {
+        email,
+        first_name: given_name || '',
+        last_name: family_name || '',
+        username,
+        password,
+        meta_data: [{ key: 'google_id', value: googleId }]
+      });
+
+      logger.info('Created new user via Google OAuth', { email, userId: user.id });
+    } else {
+      user = customers[0];
+      logger.info('Existing user logged in via Google OAuth', { email, userId: user.id });
+    }
+
+    // Generate JWT
+    const jwtToken = generateToken(user);
+
+    res.json({
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        username: user.username || '',
+        avatar: user.avatar_url || picture || ''
+      }
+    });
+
+  } catch (error) {
+    logger.error('Google token exchange failed:', error);
+    if (error instanceof ValidationError) {
+      throw error;
+    }
+    throw new ValidationError('Failed to authenticate with Google');
+  }
+}));
 
 // GET /api/v1/auth/google
 // Initiates the flow - usually redirects the user's browser

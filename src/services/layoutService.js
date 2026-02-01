@@ -187,6 +187,72 @@ const getHomeLayout = async () => {
           action: 'product_list:featured',
           title: 'New Season Essentials'
         }
+      },
+      // 1. 3 col grid with two rows (6 items) - Original Image, Small Title, Price, %Off
+      {
+        type: 'product_list',
+        title: "Trending Mini's",
+        data: {
+          query_type: 'ids',
+          layout: 'grid_3_col',
+          ids: [9199, 9191, 9183, 9164, 9156, 9134]
+        }
+      },
+      // 2. Slider with 2.5 products visible - Custom/Dummy Images
+      {
+        type: 'product_list',
+        title: 'Exclusive Looks',
+        data: {
+          query_type: 'ids',
+          layout: 'slider_2_5',
+          ids: [9122, 9117, 9107, 9099, 9089, 9084],
+          images: [ // Dummy images as requested
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-14.webp'
+          ]
+        }
+      },
+      // 3. 3 col grid with two rows in Container
+      {
+        type: 'product_list',
+        title: "Editor's Pick",
+        data: {
+          query_type: 'ids',
+          layout: 'grid_3_col_container',
+          ids: [9048, 9042, 9199, 9191, 9183, 9164]
+        }
+      },
+      // 4. Copy of Section 1
+      {
+        type: 'product_list',
+        title: 'Hot Deals',
+        data: {
+          query_type: 'ids',
+          layout: 'grid_3_col',
+          ids: [9156, 9134, 9122, 9117, 9107, 9099]
+        }
+      },
+      // 5. Copy of Section 2 (Slider)
+      {
+        type: 'product_list',
+        title: 'Just for You',
+        data: {
+          query_type: 'ids',
+          layout: 'slider_2_5',
+          ids: [9089, 9084, 9048, 9042, 9199, 9191],
+           images: [
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-13.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-12.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-11.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-10.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp'
+          ]
+        }
       }
     ];
 

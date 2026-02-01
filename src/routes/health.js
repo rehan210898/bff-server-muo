@@ -24,10 +24,10 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/detailed', asyncHandler(async (req, res) => {
   const uptime = process.uptime();
   const memoryUsage = process.memoryUsage();
-  
+
   const wooCommerceHealth = await wooCommerceClient.healthCheck();
-  const cacheStats = cache.getStats();
-  
+  const cacheStats = await cache.getStats();
+
   const health = {
     success: true,
     status: wooCommerceHealth.status === 'connected' ? 'healthy' : 'degraded',
@@ -47,27 +47,29 @@ router.get('/detailed', asyncHandler(async (req, res) => {
     },
     cache: {
       enabled: true,
+      type: cache.isUsingRedis() ? 'redis' : 'node-cache',
       stats: cacheStats
     },
     environment: process.env.NODE_ENV,
     nodeVersion: process.version
   };
-  
+
   res.json(health);
 }));
 
 router.get('/cache/stats', asyncHandler(async (req, res) => {
-  const stats = cache.getStats();
-  
+  const stats = await cache.getStats();
+
   res.json({
     success: true,
+    type: cache.isUsingRedis() ? 'redis' : 'node-cache',
     cache: stats
   });
 }));
 
 router.post('/cache/clear', asyncHandler(async (req, res) => {
-  const cleared = cache.flush();
-  
+  const cleared = await cache.flush();
+
   res.json({
     success: cleared,
     message: cleared ? 'Cache cleared successfully' : 'Failed to clear cache'

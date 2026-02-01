@@ -125,7 +125,7 @@ class WooCommerceClient {
     const cacheKey = `${namespace}_${endpoint}_${JSON.stringify(params)}`;
 
     if (useCache) {
-      const cachedData = cache.get(cacheKey);
+      const cachedData = await cache.get(cacheKey);
       if (cachedData) {
         logger.info(`✅ Cache hit for: ${endpoint}`);
         return cachedData;
@@ -135,14 +135,14 @@ class WooCommerceClient {
     try {
       const config = this.buildConfig('GET', endpoint, null, params, namespace, auth, headers);
       const response = await this.client.request(config);
-      
+
       // Return headers if requested (e.g. for Nonce)
       if (options.returnHeaders) {
-          return { data: response.data, headers: response.headers };
+        return { data: response.data, headers: response.headers };
       }
 
       if (useCache) {
-        cache.set(cacheKey, response.data, cacheTTL);
+        await cache.set(cacheKey, response.data, cacheTTL);
       }
 
       return response.data;
@@ -156,12 +156,12 @@ class WooCommerceClient {
     try {
       const config = this.buildConfig('POST', endpoint, data, params, namespace, true, headers);
       const response = await this.client.request(config);
-      this.invalidateCache(endpoint);
-      
+      await this.invalidateCache(endpoint);
+
       if (options.returnHeaders) {
-          return { data: response.data, headers: response.headers };
+        return { data: response.data, headers: response.headers };
       }
-      
+
       return response.data;
     } catch (error) {
       throw error;
@@ -172,7 +172,7 @@ class WooCommerceClient {
     try {
       const config = this.buildConfig('PUT', endpoint, data, params);
       const response = await this.client.request(config);
-      this.invalidateCache(endpoint);
+      await this.invalidateCache(endpoint);
       return response.data;
     } catch (error) {
       throw error;
@@ -184,10 +184,10 @@ class WooCommerceClient {
     try {
       const config = this.buildConfig('DELETE', endpoint, null, params, namespace, true, headers);
       const response = await this.client.request(config);
-      this.invalidateCache(endpoint);
-      
+      await this.invalidateCache(endpoint);
+
       if (options.returnHeaders) {
-          return { data: response.data, headers: response.headers };
+        return { data: response.data, headers: response.headers };
       }
 
       return response.data;
@@ -196,16 +196,16 @@ class WooCommerceClient {
     }
   }
 
-  invalidateCache(endpoint) {
-    const keys = cache.keys();
-    const pattern = `wc_${endpoint.split('/')[1]}`;
-    
-    keys.forEach(key => {
-      if (key.includes(pattern)) {
-        cache.del(key);
-        logger.info(`🗑️ Cache invalidated: ${key}`);
+  async invalidateCache(endpoint) {
+    try {
+      const pattern = endpoint.split('/')[1] || '';
+      if (pattern) {
+        await cache.delPattern(`*${pattern}*`);
+        logger.info(`🗑️ Cache invalidated for pattern: ${pattern}`);
       }
-    });
+    } catch (error) {
+      logger.error('Cache invalidation error:', error.message);
+    }
   }
 
   handleError(error) {

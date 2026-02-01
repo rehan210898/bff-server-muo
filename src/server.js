@@ -9,6 +9,13 @@ const rateLimit = require('express-rate-limit');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { validateApiKey } = require('./middleware/auth');
 const logger = require('./utils/logger');
+const { validateEnv } = require('./utils/envValidator');
+
+// Validate environment variables on startup
+if (!validateEnv()) {
+  logger.error('Server startup aborted due to environment validation failure');
+  process.exit(1);
+}
 
 // Import Routes
 const productRoutes = require('./routes/products');
