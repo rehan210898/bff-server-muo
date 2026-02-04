@@ -378,6 +378,54 @@ const getHomeLayout = async () => {
             
           ]
         }
+      },
+
+      // Grid Collection 1 (3 Columns)
+      {
+        type: 'product_list',
+        title: 'Grid Collection 1',
+        data: {
+          query_type: 'ids',
+          card_style: 'image_only',
+          layout: 'grid_3_col',
+          ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117, 9107, 9099],
+          images: [
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp'
+          ]
+        }
+      },
+
+      // Grid Collection 2 (2 Columns)
+      {
+        type: 'product_list',
+        title: 'Grid Collection 2',
+        data: {
+          query_type: 'ids',
+          card_style: 'image_only',
+          layout: 'grid_2_col',
+          ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117, 9107, 9099],
+          images: [
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp'
+          ]
+        }
       }
     ];
 
