@@ -1,9 +1,12 @@
 const wooCommerceClient = require('./woocommerceClient');
+const instagramService = require('./instagramService');
 const logger = require('../utils/logger');
 
 const getHomeLayout = async () => {
   try {
     logger.info('Layout Service: Generating Stitch UI home layout');
+
+    const instaVideos = await instagramService.getLatestVideos(6);
 
     // Stitch UI Layout Configuration
     // Modern, magazine-style fashion app layout
@@ -14,7 +17,7 @@ const getHomeLayout = async () => {
         data: {
           slides: [
             {
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-1-28.webp',
+              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-10.webp',
               badge: { text: 'New Collection', color: '#661F1D' },
               title: 'Summer',
               titleAccent: 'Essentials',
@@ -23,7 +26,7 @@ const getHomeLayout = async () => {
               action: { type: 'filter', value: 'featured', title: 'Featured' }
             },
             {
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-1-27.webp',
+              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-5.webp',
               badge: { text: 'Premium Range', color: '#D4AF37' },
               title: 'Lipstick',
               titleAccent: 'Love',
@@ -32,7 +35,7 @@ const getHomeLayout = async () => {
               action: { type: 'category', value: 92, title: 'Lipsticks' }
             },
             {
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-1-26.webp',
+              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-4.webp',
               badge: { text: 'Up to 50% Off', color: '#EF4444' },
               title: 'Flash',
               titleAccent: 'Sale',
@@ -52,13 +55,14 @@ const getHomeLayout = async () => {
         data: {
           ids: [23, 29, 25, 92, 37, 27, 33],
           images: [
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-32.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-31.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp'
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-6.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-7.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-11.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-6.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-7.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp'
+          
           ]
         }
       },
@@ -67,7 +71,7 @@ const getHomeLayout = async () => {
       {
         type: 'promo_banner',
         data: {
-          imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-1-21.webp',
+          imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-6.webp',
           title: 'Get Ready',
           titleAccent: 'Glow',
           description: 'Premium foundations for a flawless base',
@@ -75,6 +79,40 @@ const getHomeLayout = async () => {
           action: { type: 'category', value: 29, title: 'Foundation' }
         }
       },
+
+      {
+  "type": "product_list",
+  "title": "Season Favorites ",
+  "data": {
+    "query_type": "ids",
+    "card_style": "image_only",
+    "layout": "slider_2_5",
+    "ids": [
+      9199,
+      9107,
+      9191,
+      9099,
+      9156,
+      9122,
+      9134,
+      9117,
+      9164,
+      9183
+    ],
+    "images": [
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp"
+    ]
+  }
+},
 
       // Flash Sale Section
       {
@@ -94,30 +132,48 @@ const getHomeLayout = async () => {
         type: 'trending_videos',
         title: 'Trending Now',
         data: {
-          videos: [
-            {
-              id: '1',
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
-              title: 'Summer Makeup Tutorial'
-            },
-            {
-              id: '2',
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
-              title: 'Glam Night Out Look'
-            },
-            {
-              id: '3',
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
-              title: 'Natural Everyday Beauty'
-            },
-            {
-              id: '4',
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
-              title: 'Bold Lip Colors'
-            }
-          ]
+          videos: instaVideos.map(v => ({
+            id: v.id,
+            imageUrl: v.thumbnail_url || v.media_url, 
+            title: v.caption ? v.caption.substring(0, 50) + (v.caption.length > 50 ? '...' : '') : 'Instagram Reel',
+            videoUrl: v.media_url
+          }))
         }
       },
+
+      {
+  "type": "product_list",
+  "title": "Season Favorites ",
+  "data": {
+    "query_type": "ids",
+    "card_style": "image_only",
+    "layout": "slider_2_5",
+    "ids": [
+      9117,
+      9191,
+      9107,
+      9199,
+      9134,
+      9122,
+      9156,
+      9164,
+      9099,
+      9183
+    ],
+    "images": [
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp"
+    ]
+  }
+},
 
       // Top Rated Products
       {
@@ -139,11 +195,45 @@ const getHomeLayout = async () => {
         }
       },
 
+      {
+  "type": "product_list",
+  "title": "Season Favorites ",
+  "data": {
+    "query_type": "ids",
+    "card_style": "image_only",
+    "layout": "slider_2_5",
+    "ids": [
+      9122,
+      9134,
+      9099,
+      9199,
+      9164,
+      9117,
+      9156,
+      9191,
+      9183,
+      9107
+    ],
+    "images": [
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp"
+    ]
+  }
+},
+
       // Another Promo Banner
       {
         type: 'promo_banner',
         data: {
-          imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/01/img-1-22.webp',
+          imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-6.webp',
           title: 'Glow',
           titleAccent: 'Up',
           description: 'Highlighters that make you shine',
@@ -169,16 +259,50 @@ const getHomeLayout = async () => {
         data: {
           ids: [223, 135, 132, 163, 146, 221, 46],
           images: [
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-32.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-31.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp'
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-6.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-7.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-11.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-6.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-7.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp'
           ]
         }
       },
+
+      {
+  "type": "product_list",
+  "title": "Season Favorites ",
+  "data": {
+    "query_type": "ids",
+    "card_style": "image_only",
+    "layout": "slider_2_5",
+    "ids": [
+      9164,
+      9156,
+      9117,
+      9183,
+      9107,
+      9122,
+      9191,
+      9199,
+      9134,
+      9099
+    ],
+    "images": [
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp",
+      "https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp"
+    ]
+  }
+},
 
       // New Arrivals
       {
@@ -206,7 +330,7 @@ const getHomeLayout = async () => {
         title: "Trending Mini's",
         data: {
           query_type: 'ids',
-          layout: 'grid_3_col',
+          layout: 'slider_2_5',
           ids: [9199, 9191, 9183, 9164, 9156, 9134]
         }
       },
@@ -218,22 +342,17 @@ const getHomeLayout = async () => {
         data: {
           query_type: 'ids',
           layout: 'slider_2_5',
+          card_style: 'image_only',
           ids: [9122, 9117, 9107, 9099, 9089, 9084],
           images: [
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-14.webp'
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed.webp'
           ]
         }
-      },
-
-      // Beauty Animation (micro interactions)
-      {
-        type: 'beauty_animation',
-        data: {}
       },
 
       // Season Favorites
@@ -242,28 +361,31 @@ const getHomeLayout = async () => {
         title: 'Season Favorites',
         data: {
           query_type: 'ids',
+          card_style: 'image_only',
+          layout: 'slider_2_5',
           ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117, 9107, 9099],
           images: [
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-34.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-33.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-32.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-31.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-1-30.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp'
+            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp'
+            
           ]
         }
       }
     ];
 
-    logger.info(`Layout Service: Returning ${layout.length} sections`);
+    logger.info('Layout Service: Returning ' + layout.length + ' sections');
     return layout;
 
   } catch (error) {
-    logger.error(`Error generating home layout: ${error.message}`);
+    logger.error('Error generating home layout: ' + error.message);
     return [];
   }
 };
