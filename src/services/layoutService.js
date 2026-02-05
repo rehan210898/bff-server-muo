@@ -79,6 +79,7 @@ const getHomeLayout = async () => {
           action: { type: 'category', value: 29, title: 'Foundation' }
         }
       },
+      
 
       {
   "type": "product_list",
@@ -242,16 +243,6 @@ const getHomeLayout = async () => {
         }
       },
 
-      // Editor's Choice
-      {
-        type: 'editors_choice',
-        title: "Editor's Choice",
-        data: {
-          query_type: 'featured',
-          api_params: { featured: true, per_page: 6 }
-        }
-      },
-
       // Brand Grid
       {
         type: 'brand_grid',
@@ -379,7 +370,6 @@ const getHomeLayout = async () => {
           ]
         }
       },
-
       // Grid Collection 1 (3 Columns)
       {
         type: 'product_list',
@@ -388,18 +378,15 @@ const getHomeLayout = async () => {
           query_type: 'ids',
           card_style: 'image_only',
           layout: 'grid_3_col',
-          ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117, 9107, 9099],
+          ids: [9199, 9191, 9183, 9164, 9156, 9134],
           images: [
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
             'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp'
+            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp'
+            
           ]
         }
       },
@@ -412,14 +399,8 @@ const getHomeLayout = async () => {
           query_type: 'ids',
           card_style: 'image_only',
           layout: 'grid_2_col',
-          ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117, 9107, 9099],
+          ids: [9199, 9191, 9183, 9164],
           images: [
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-9.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-17.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
-            'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
             'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
             'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
             'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
