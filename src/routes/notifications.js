@@ -1,20 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const wooCommerceClient = require('../services/woocommerceClient');
-const { asyncHandler } = require('../middleware/errorHandler');
+const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
 const campaignConfig = require('../config/notificationCampaign');
 
 // POST /api/v1/notifications/register
 router.post('/register', asyncHandler(async (req, res) => {
   const { token, platform } = req.body;
-  
+
+  if (!token || typeof token !== 'string' || token.trim().length === 0) {
+    throw new ValidationError('Device token is required');
+  }
+
   // Forward to WP Plugin Endpoint
-  // Passing namespace 'muo-push/v1' explicitly to override default 'wc/v3'
-  const response = await wooCommerceClient.post('/register', { 
-    token, 
-    platform 
+  const response = await wooCommerceClient.post('/register', {
+    token: token.trim(),
+    platform: platform || 'unknown'
   }, {}, { namespace: 'muo-push/v1' });
-  
+
   res.json(response);
 }));
 
@@ -52,11 +55,15 @@ router.post('/broadcast', asyncHandler(async (req, res) => {
 // POST /api/v1/notifications/remove
 router.post('/remove', asyncHandler(async (req, res) => {
   const { token } = req.body;
-  
-  const response = await wooCommerceClient.post('/remove', { 
-    token 
+
+  if (!token || typeof token !== 'string' || token.trim().length === 0) {
+    throw new ValidationError('Device token is required');
+  }
+
+  const response = await wooCommerceClient.post('/remove', {
+    token: token.trim()
   }, {}, { namespace: 'muo-push/v1' });
-  
+
   res.json(response);
 }));
 

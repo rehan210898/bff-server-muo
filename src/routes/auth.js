@@ -391,8 +391,8 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
   // Pass full user info so frontend doesn't need to fetch it
   const params = new URLSearchParams({
     token: jwtToken,
-    uId: user.id,
-    email: user.email,
+    uId: String(user.id),
+    email: user.email || '',
     firstName: user.first_name || '',
     lastName: user.last_name || '',
     username: user.username || '',
