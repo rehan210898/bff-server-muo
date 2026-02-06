@@ -13,10 +13,12 @@ module.exports = {
   image: "",
   
   // Data payload for navigation logic in the app
+  // Supported screen values: Category, ProductList, ProductDetail, OrderTracking, Home
+  // "Category" maps to ProductList screen with categoryId + name params
   data: {
-    screen: "Category", // Matches your navigation stack names
+    screen: "Category",
     params: {
-      categoryId: 9099, // e.g. Lips category
+      categoryId: 9099,
       name: "Lips"
     }
   },
