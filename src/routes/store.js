@@ -397,49 +397,65 @@ router.post('/cart/sync', asyncHandler(async (req, res) => {
 
   console.log(`Sync Logic: Add ${toAdd.length}, Update ${toUpdate.length}, Remove ${toRemove.length}`);
 
-  // 3. Execute Updates (Sequential to maintain Nonce/Session)
-  
-  // Remove items first
-  for (const key of toRemove) {
-      try {
-           const res = await executeStoreAction((h) => wooCommerceClient.post('/cart/remove-item', { key }, {}, {
-              namespace: NAMESPACE,
-              headers: h,
-              returnHeaders: true
-          }));
-          refreshSessionFromHeaders(res.headers);
-      } catch (e) { console.error('Failed to remove item', key, e.message); }
+  // 3. Execute Updates - Step 5: Parallelize independent operations within each phase
+
+  // Remove items in parallel
+  if (toRemove.length > 0) {
+    const removeResults = await Promise.allSettled(
+      toRemove.map(key =>
+        executeStoreAction((h) => wooCommerceClient.post('/cart/remove-item', { key }, {}, {
+          namespace: NAMESPACE,
+          headers: h,
+          returnHeaders: true
+        }))
+      )
+    );
+    // Refresh session from last successful result
+    for (const r of removeResults) {
+      if (r.status === 'fulfilled') refreshSessionFromHeaders(r.value.headers);
+      else console.error('Failed to remove item', r.reason?.message);
+    }
   }
 
-  // Update items
-  for (const update of toUpdate) {
-      try {
-          const res = await executeStoreAction((h) => wooCommerceClient.post('/cart/update-item', { 
-              key: update.key, 
-              quantity: update.quantity 
-          }, {}, {
-              namespace: NAMESPACE,
-              headers: h,
-              returnHeaders: true
-          }));
-          refreshSessionFromHeaders(res.headers);
-      } catch (e) { console.error('Failed to update item', update.key, e.message); }
+  // Update items in parallel
+  if (toUpdate.length > 0) {
+    const updateResults = await Promise.allSettled(
+      toUpdate.map(update =>
+        executeStoreAction((h) => wooCommerceClient.post('/cart/update-item', {
+          key: update.key,
+          quantity: update.quantity
+        }, {}, {
+          namespace: NAMESPACE,
+          headers: h,
+          returnHeaders: true
+        }))
+      )
+    );
+    for (const r of updateResults) {
+      if (r.status === 'fulfilled') refreshSessionFromHeaders(r.value.headers);
+      else console.error('Failed to update item', r.reason?.message);
+    }
   }
 
-  // Add items
-  for (const add of toAdd) {
-      try {
-          const res = await executeStoreAction((h) => wooCommerceClient.post('/cart/add-item', { 
-              id: add.id, 
-              quantity: add.quantity,
-              variation_id: add.variation_id
-          }, {}, {
-              namespace: NAMESPACE,
-              headers: h,
-              returnHeaders: true
-          }));
-          refreshSessionFromHeaders(res.headers);
-      } catch (e) { console.error('Failed to add item', add.id, e.message); }
+  // Add items in parallel
+  if (toAdd.length > 0) {
+    const addResults = await Promise.allSettled(
+      toAdd.map(add =>
+        executeStoreAction((h) => wooCommerceClient.post('/cart/add-item', {
+          id: add.id,
+          quantity: add.quantity,
+          variation_id: add.variation_id
+        }, {}, {
+          namespace: NAMESPACE,
+          headers: h,
+          returnHeaders: true
+        }))
+      )
+    );
+    for (const r of addResults) {
+      if (r.status === 'fulfilled') refreshSessionFromHeaders(r.value.headers);
+      else console.error('Failed to add item', r.reason?.message);
+    }
   }
 
   // Final fetch to return consistent state

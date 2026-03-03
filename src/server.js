@@ -81,12 +81,32 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 }));
 
-// Compression Middleware
-app.use(compression());
+// Step 19: Compression Middleware with level & threshold
+app.use(compression({ level: 6, threshold: 1024 }));
 
 // Body Parser Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Step 14: Request timing middleware (APM)
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const duration = Number(process.hrtime.bigint() - start) / 1e6;
+    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration.toFixed(1)}ms`);
+  });
+  next();
+});
+
+// Step 7: Per-request timeout middleware (30s)
+app.use((req, res, next) => {
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ success: false, message: 'Request timeout' });
+    }
+  });
+  next();
+});
 
 // Logging Middleware
 if (process.env.NODE_ENV === 'development') {
@@ -117,26 +137,40 @@ const limiter = rateLimit({
 
 app.use(`/api/${API_VERSION}`, limiter);
 
+// Step 6: Cache-Control header middleware factory
+const cacheControl = (maxAge, swr = 0) => (req, res, next) => {
+  if (req.method === 'GET') {
+    let value = `public, max-age=${maxAge}`;
+    if (swr) value += `, stale-while-revalidate=${swr}`;
+    res.set('Cache-Control', value);
+  }
+  next();
+};
+const noCache = (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache');
+  next();
+};
+
 // Health Check Route (no auth required)
 app.use(`/api/${API_VERSION}/health`, healthRoutes);
 
 // API Key Validation Middleware (for all other routes)
 app.use(`/api/${API_VERSION}`, validateApiKey);
 
-// API Routes
+// API Routes with per-route Cache-Control headers
 app.use(`/api/${API_VERSION}/auth`, authRoutes);
-app.use(`/api/${API_VERSION}/products`, productRoutes);
-app.use(`/api/${API_VERSION}/categories`, categoryRoutes);
-app.use(`/api/${API_VERSION}/orders`, orderRoutes);
-app.use(`/api/${API_VERSION}/customers`, customerRoutes);
-app.use(`/api/${API_VERSION}/cart`, cartRoutes);
-app.use(`/api/${API_VERSION}/attributes`, attributeRoutes);
-app.use(`/api/${API_VERSION}/tags`, tagRoutes);
-app.use(`/api/${API_VERSION}/layout`, layoutRoutes);
-app.use(`/api/${API_VERSION}/payment`, paymentRoutes);
-app.use(`/api/${API_VERSION}/store`, storeRoutes);
-app.use(`/api/${API_VERSION}/config`, configRoutes);
-app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
+app.use(`/api/${API_VERSION}/products`, cacheControl(120, 300), productRoutes);
+app.use(`/api/${API_VERSION}/categories`, cacheControl(3600), categoryRoutes);
+app.use(`/api/${API_VERSION}/orders`, noCache, orderRoutes);
+app.use(`/api/${API_VERSION}/customers`, noCache, customerRoutes);
+app.use(`/api/${API_VERSION}/cart`, noCache, cartRoutes);
+app.use(`/api/${API_VERSION}/attributes`, cacheControl(3600), attributeRoutes);
+app.use(`/api/${API_VERSION}/tags`, cacheControl(3600), tagRoutes);
+app.use(`/api/${API_VERSION}/layout`, cacheControl(300), layoutRoutes);
+app.use(`/api/${API_VERSION}/payment`, noCache, paymentRoutes);
+app.use(`/api/${API_VERSION}/store`, noCache, storeRoutes);
+app.use(`/api/${API_VERSION}/config`, cacheControl(1800), configRoutes);
+app.use(`/api/${API_VERSION}/notifications`, noCache, notificationRoutes);
 
 // Root Route
 app.get('/', (req, res) => {
@@ -168,6 +202,11 @@ const server = app.listen(PORT, () => {
   logger.info(`📱 Environment: ${process.env.NODE_ENV}`);
   logger.info(`🔗 API Base URL: http://localhost:${PORT}/api/${API_VERSION}`);
 });
+
+// Step 7: Server keep-alive & request timeouts
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+server.timeout = 60000;
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');

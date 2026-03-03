@@ -5,54 +5,68 @@ const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
 
 router.post('/validate', asyncHandler(async (req, res) => {
   const { items } = req.body;
-  
+
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new ValidationError('Cart items are required');
   }
 
-  const validationResults = [];
-  
-  for (const item of items) {
-    try {
-      const product = await wooCommerceClient.get(`/products/${item.product_id}`);
-      
-      const validation = {
-        product_id: item.product_id,
-        valid: true,
-        errors: []
-      };
+  // Step 2: Batch product lookups instead of N+1 individual calls
+  const productIds = [...new Set(items.map(item => item.product_id))];
+  let productMap = new Map();
 
-      if (!product || product.status !== 'publish') {
-        validation.valid = false;
-        validation.errors.push('Product not available');
-      }
+  try {
+    const products = await wooCommerceClient.get('/products', {
+      include: productIds.join(','),
+      per_page: productIds.length
+    });
+    for (const product of products) {
+      productMap.set(product.id, product);
+    }
+  } catch (error) {
+    // If batch fetch fails, all items are invalid
+  }
 
-      if (product.manage_stock && product.stock_quantity < item.quantity) {
-        validation.valid = false;
-        validation.errors.push(`Only ${product.stock_quantity} items available`);
-      }
+  const validationResults = items.map(item => {
+    const product = productMap.get(item.product_id);
 
-      if (product.stock_status !== 'instock') {
-        validation.valid = false;
-        validation.errors.push('Product out of stock');
-      }
-
-      validation.product = {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        stock_status: product.stock_status
-      };
-
-      validationResults.push(validation);
-    } catch (error) {
-      validationResults.push({
+    if (!product) {
+      return {
         product_id: item.product_id,
         valid: false,
         errors: ['Product not found']
-      });
+      };
     }
-  }
+
+    const validation = {
+      product_id: item.product_id,
+      valid: true,
+      errors: []
+    };
+
+    if (product.status !== 'publish') {
+      validation.valid = false;
+      validation.errors.push('Product not available');
+    }
+
+    if (product.manage_stock && product.stock_quantity < item.quantity) {
+      validation.valid = false;
+      validation.errors.push(`Only ${product.stock_quantity} items available`);
+    }
+
+    if (product.stock_status !== 'instock') {
+      validation.valid = false;
+      validation.errors.push('Product out of stock');
+    }
+
+    validation.product = {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      stock_status: product.stock_status
+    };
+
+    return validation;
+  });
 
   const allValid = validationResults.every(r => r.valid);
 
@@ -65,25 +79,35 @@ router.post('/validate', asyncHandler(async (req, res) => {
 
 router.post('/calculate', asyncHandler(async (req, res) => {
   const { items } = req.body;
-  
+
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new ValidationError('Cart items are required');
+  }
+
+  // Batch product lookups
+  const productIds = [...new Set(items.map(item => item.product_id))];
+  const products = await wooCommerceClient.get('/products', {
+    include: productIds.join(','),
+    per_page: productIds.length
+  });
+  const productMap = new Map();
+  for (const product of products) {
+    productMap.set(product.id, product);
   }
 
   let subtotal = 0;
   const calculatedItems = [];
 
   for (const item of items) {
-    const product = await wooCommerceClient.get(`/products/${item.product_id}`);
-    
-    const itemPrice = parseFloat(product.price) || 0;
+    const product = productMap.get(item.product_id);
+    const itemPrice = product ? (parseFloat(product.price) || 0) : 0;
     const itemTotal = itemPrice * item.quantity;
-    
+
     subtotal += itemTotal;
-    
+
     calculatedItems.push({
       product_id: item.product_id,
-      name: product.name,
+      name: product?.name || 'Unknown',
       quantity: item.quantity,
       price: itemPrice,
       total: itemTotal

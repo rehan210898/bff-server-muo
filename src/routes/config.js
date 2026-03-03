@@ -7,9 +7,10 @@ router.get('/', asyncHandler(async (req, res) => {
   try {
     // Fetch config from WordPress custom endpoint
     // Namespace 'muo/v1' must match what's in functions.php
-    const config = await wooCommerceClient.get('/config', {}, { 
-        namespace: 'muo/v1', 
-        useCache: false 
+    const config = await wooCommerceClient.get('/config', {}, {
+        namespace: 'muo/v1',
+        useCache: true,
+        cacheTTL: 1800
     });
     
     res.json(config);

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const wooCommerceClient = require('../services/woocommerceClient');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { transformProduct, transformProducts, transformVariations } = require('../transformers/productTransformer');
+const { transformProduct, transformProducts, transformVariations, transformProductCards } = require('../transformers/productTransformer');
 
 /**
  * @route   GET /api/v1/products
@@ -47,15 +47,20 @@ router.get('/', asyncHandler(async (req, res) => {
   if (attribute_term) params.attribute_term = attribute_term;
   if (include) params.include = include;
 
-  const products = await wooCommerceClient.get('/products', params);
-  
+  // Step 17: Use WC pagination headers for accurate totals
+  const result = await wooCommerceClient.get('/products', params, { returnHeaders: true });
+  const products = result.data;
+  const totalProducts = parseInt(result.headers['x-wp-total']) || products.length;
+  const totalPages = parseInt(result.headers['x-wp-totalpages']) || 1;
+
   res.json({
     success: true,
-    data: transformProducts(products),
+    data: transformProductCards(products),
     pagination: {
       page: parseInt(page),
       per_page: parseInt(per_page),
-      total: products.length
+      total: totalProducts,
+      total_pages: totalPages
     }
   });
 }));
@@ -193,10 +198,10 @@ router.get('/featured/list', asyncHandler(async (req, res) => {
     per_page: parseInt(per_page),
     status: 'publish'
   });
-  
+
   res.json({
     success: true,
-    data: transformProducts(products),
+    data: transformProductCards(products),
     count: products.length
   });
 }));
@@ -215,10 +220,10 @@ router.get('/on-sale/list', asyncHandler(async (req, res) => {
     page: parseInt(page),
     status: 'publish'
   });
-  
+
   res.json({
     success: true,
-    data: transformProducts(products),
+    data: transformProductCards(products),
     pagination: {
       page: parseInt(page),
       per_page: parseInt(per_page),
@@ -234,29 +239,35 @@ router.get('/on-sale/list', asyncHandler(async (req, res) => {
  */
 router.get('/related/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { per_page = 4 } = req.query;
-  
-  const product = await wooCommerceClient.get(`/products/${id}`);
-  
-  if (!product || !product.categories || product.categories.length === 0) {
-    return res.json({
-      success: true,
-      data: [],
-      count: 0
-    });
+  const { per_page = 4, categories } = req.query;
+
+  // Step 18: Accept categories from frontend to skip initial product fetch
+  let categoryIds = categories;
+
+  if (!categoryIds) {
+    const product = await wooCommerceClient.get(`/products/${id}`);
+
+    if (!product || !product.categories || product.categories.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        count: 0
+      });
+    }
+
+    categoryIds = product.categories.map(cat => cat.id).join(',');
   }
-  
-  const categoryIds = product.categories.map(cat => cat.id).join(',');
+
   const relatedProducts = await wooCommerceClient.get('/products', {
     category: categoryIds,
     per_page: parseInt(per_page) + 1,
     exclude: [parseInt(id)],
     status: 'publish'
   });
-  
+
   res.json({
     success: true,
-    data: transformProducts(relatedProducts.slice(0, parseInt(per_page))),
+    data: transformProductCards(relatedProducts.slice(0, parseInt(per_page))),
     count: relatedProducts.length
   });
 }));

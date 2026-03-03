@@ -158,7 +158,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
 router.get('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const order = await wooCommerceClient.get(`/orders/${id}`, {}, { useCache: false });
+  const order = await wooCommerceClient.get(`/orders/${id}`, {}, { useCache: true, cacheTTL: 15 });
   
   res.json({
     success: true,

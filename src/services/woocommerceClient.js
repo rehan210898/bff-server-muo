@@ -1,4 +1,6 @@
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 const OAuth = require('oauth-1.0a');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
@@ -33,9 +35,15 @@ class WooCommerceClient {
       });
     }
 
+    // Step 1: Enable HTTP Keep-Alive to reuse TCP+TLS connections
+    const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 50 });
+    const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50 });
+
     this.client = axios.create({
       baseURL: this.baseURL ? `${this.baseURL}/wp-json/wc/v3` : '',
       timeout: 30000,
+      httpAgent,
+      httpsAgent,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'WooCommerce-BFF-Server/1.0.0',
@@ -67,7 +75,23 @@ class WooCommerceClient {
         logger.info(`📥 WooCommerce API Response: ${response.status} (${duration}ms)`);
         return response;
       },
-      (error) => {
+      async (error) => {
+        const config = error.config;
+
+        // Step 8: Retry logic for transient errors on GET requests only
+        if (config && config.method === 'get') {
+          config.__retryCount = config.__retryCount || 0;
+          const isTransient = !error.response || error.response.status >= 500 || error.code === 'ECONNABORTED';
+
+          if (isTransient && config.__retryCount < 2) {
+            config.__retryCount += 1;
+            const delay = 400 * Math.pow(2, config.__retryCount - 1); // 400ms, 800ms
+            logger.warn(`🔄 Retrying GET ${config.url} (attempt ${config.__retryCount}/2, waiting ${delay}ms)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return this.client.request(config);
+          }
+        }
+
         if (error.response) {
           const duration = Date.now() - error.config.metadata.startTime;
           logger.error(
@@ -122,12 +146,18 @@ class WooCommerceClient {
 
   async get(endpoint, params = {}, options = {}) {
     const { useCache = true, cacheTTL, namespace = 'wc/v3', auth = true, headers = {} } = options;
-    const cacheKey = `${namespace}_${endpoint}_${JSON.stringify(params)}`;
+    // Step 3: Sort params keys for deterministic cache keys
+    const sortedParams = Object.keys(params).sort().reduce((acc, k) => { acc[k] = params[k]; return acc; }, {});
+    const cacheKey = `${namespace}_${endpoint}_${JSON.stringify(sortedParams)}`;
 
     if (useCache) {
       const cachedData = await cache.get(cacheKey);
       if (cachedData) {
         logger.info(`✅ Cache hit for: ${endpoint}`);
+        // When returnHeaders requested but serving from cache, wrap consistently
+        if (options.returnHeaders) {
+          return { data: cachedData, headers: {} };
+        }
         return cachedData;
       }
     }
@@ -136,13 +166,13 @@ class WooCommerceClient {
       const config = this.buildConfig('GET', endpoint, null, params, namespace, auth, headers);
       const response = await this.client.request(config);
 
-      // Return headers if requested (e.g. for Nonce)
-      if (options.returnHeaders) {
-        return { data: response.data, headers: response.headers };
-      }
-
       if (useCache) {
         await cache.set(cacheKey, response.data, cacheTTL);
+      }
+
+      // Return headers if requested (e.g. for Nonce or pagination)
+      if (options.returnHeaders) {
+        return { data: response.data, headers: response.headers };
       }
 
       return response.data;
@@ -152,9 +182,9 @@ class WooCommerceClient {
   }
 
   async post(endpoint, data = {}, params = {}, options = {}) {
-    const { namespace = 'wc/v3', headers = {} } = options;
+    const { namespace = 'wc/v3', headers = {}, auth = true } = options;
     try {
-      const config = this.buildConfig('POST', endpoint, data, params, namespace, true, headers);
+      const config = this.buildConfig('POST', endpoint, data, params, namespace, auth, headers);
       const response = await this.client.request(config);
       await this.invalidateCache(endpoint);
 

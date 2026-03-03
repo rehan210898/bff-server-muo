@@ -15,7 +15,6 @@ const transformProduct = (product) => {
     regularPrice: product.regular_price,
     salePrice: product.sale_price,
     onSale: product.on_sale,
-    priceHtml: product.price_html,
     images: product.images?.map(img => ({
       id: img.id,
       src: img.src,
@@ -63,24 +62,18 @@ const transformProduct = (product) => {
     relatedIds: product.related_ids || [],
     upsellIds: product.upsell_ids || [],
     crossSellIds: product.cross_sell_ids || [],
-    downloadable: product.downloadable,
-    virtual: product.virtual,
     dateCreated: product.date_created,
-    dateModified: product.date_modified,
-    permalink: product.permalink,
-    totalSales: product.total_sales
+    dateModified: product.date_modified
   };
 };
 
 const transformVariation = (variation) => {
   if (!variation) return null;
 
+  // Step 20: Stripped unnecessary fields from variation transform
   return {
     id: variation.id,
-    date_created: variation.date_created,
-    date_modified: variation.date_modified,
     description: variation.description,
-    permalink: variation.permalink,
     sku: variation.sku,
     price: variation.price,
     regular_price: variation.regular_price,
@@ -88,20 +81,15 @@ const transformVariation = (variation) => {
     on_sale: variation.on_sale,
     purchasable: variation.purchasable,
     visible: variation.visible,
-    virtual: variation.virtual,
-    downloadable: variation.downloadable,
     manage_stock: variation.manage_stock,
     stock_quantity: variation.stock_quantity,
     stock_status: variation.stock_status,
     in_stock: variation.stock_status === 'instock',
-    backorders: variation.backorders,
     backorders_allowed: variation.backorders_allowed,
-    weight: variation.weight,
-    dimensions: variation.dimensions,
     image: variation.image,
     attributes: variation.attributes,
-    maxQuantity: variation.manage_stock && variation.stock_quantity !== null 
-          ? variation.stock_quantity 
+    maxQuantity: variation.manage_stock && variation.stock_quantity !== null
+          ? variation.stock_quantity
           : 99
   };
 };

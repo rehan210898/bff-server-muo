@@ -47,7 +47,8 @@ class CacheManager {
       stdTTL: this.defaultTTL,
       checkperiod: checkPeriod,
       useClones: false,
-      deleteOnExpire: true
+      deleteOnExpire: true,
+      maxKeys: 1000 // Step 25: Prevent unbounded memory growth
     });
 
     this.nodeCache.on('expired', (key) => {
