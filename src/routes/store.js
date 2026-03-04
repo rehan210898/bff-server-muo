@@ -383,7 +383,8 @@ router.post('/cart/sync', asyncHandler(async (req, res) => {
           toAdd.push({
               id: item.product_id,
               quantity: item.quantity,
-              variation_id: item.variation_id
+              variation_id: item.variation_id,
+              variation: item.variation
           });
       }
   }
@@ -440,17 +441,19 @@ router.post('/cart/sync', asyncHandler(async (req, res) => {
   // Add items in parallel
   if (toAdd.length > 0) {
     const addResults = await Promise.allSettled(
-      toAdd.map(add =>
-        executeStoreAction((h) => wooCommerceClient.post('/cart/add-item', {
+      toAdd.map(add => {
+        const payload = {
           id: add.id,
           quantity: add.quantity,
-          variation_id: add.variation_id
-        }, {}, {
+        };
+        if (add.variation_id) payload.variation_id = add.variation_id;
+        if (add.variation && add.variation.length > 0) payload.variation = add.variation;
+        return executeStoreAction((h) => wooCommerceClient.post('/cart/add-item', payload, {}, {
           namespace: NAMESPACE,
           headers: h,
           returnHeaders: true
-        }))
-      )
+        }));
+      })
     );
     for (const r of addResults) {
       if (r.status === 'fulfilled') refreshSessionFromHeaders(r.value.headers);
