@@ -84,6 +84,22 @@ const validateJWT = (req, res, next) => {
 };
 
 /**
+ * Optional JWT validation: parse JWT if present, but don't fail if missing or invalid
+ */
+const optionalJWT = (req, res, next) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+    } catch (error) {
+      // Ignore error for optional validation
+    }
+  }
+  next();
+};
+
+/**
  * Rate limit per user (for authenticated routes)
  */
 const userRateLimit = (req, res, next) => {
@@ -120,5 +136,6 @@ const userRateLimit = (req, res, next) => {
 module.exports = {
   validateApiKey,
   validateJWT,
+  optionalJWT,
   userRateLimit
 };

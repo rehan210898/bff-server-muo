@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
+const { optionalJWT } = require('../middleware/auth');
 const campaignConfig = require('../config/notificationCampaign');
 const tokenStore = require('../services/tokenStore');
 const logger = require('../utils/logger');
@@ -87,7 +88,7 @@ async function sendViaExpoPush(tokens, { title, body, data, image }) {
 // Called by the mobile app on launch to register the Expo push token
 // Body: { token: string, platform: 'ios' | 'android' }
 // ──────────────────────────────────────────────────────────────
-router.post('/register', asyncHandler(async (req, res) => {
+router.post('/register', optionalJWT, asyncHandler(async (req, res) => {
   const { token, platform } = req.body;
 
   if (!token || typeof token !== 'string' || token.trim().length === 0) {
@@ -107,7 +108,7 @@ router.post('/register', asyncHandler(async (req, res) => {
   // Save to persistent store (survives server restart)
   tokenStore.register(cleanToken, platform || 'android', userId);
 
-  logger.info(`Push token registered: ${cleanToken.substring(0, 30)}... (platform: ${platform || 'android'})`);
+  logger.info(`Push token registered: ${cleanToken.substring(0, 30)}... (platform: ${platform || 'android'}) userId: ${userId}`);
 
   res.json({
     success: true,
@@ -120,7 +121,7 @@ router.post('/register', asyncHandler(async (req, res) => {
 // Called by the mobile app on logout
 // Body: { token: string }
 // ──────────────────────────────────────────────────────────────
-router.post('/remove', asyncHandler(async (req, res) => {
+router.post('/remove', optionalJWT, asyncHandler(async (req, res) => {
   const { token } = req.body;
 
   if (!token || typeof token !== 'string' || token.trim().length === 0) {
