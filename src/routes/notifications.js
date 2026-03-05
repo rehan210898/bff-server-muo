@@ -1,24 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const wooCommerceClient = require('../services/woocommerceClient');
 const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
 const campaignConfig = require('../config/notificationCampaign');
+const tokenStore = require('../services/tokenStore');
 const logger = require('../utils/logger');
-
-// In-memory token store (fallback if WP plugin is unavailable)
-// In production, use Redis or a database
-const tokenStore = new Map();
 
 // Expo Push API endpoint
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 /**
- * Send push notifications directly via Expo Push API
- * This is the reliable method for Expo push tokens
+ * Send push notifications via Expo Push API
  */
 async function sendViaExpoPush(tokens, { title, body, data, image }) {
-  if (!tokens || tokens.length === 0) return { sent: 0 };
+  if (!tokens || tokens.length === 0) {
+    return { sent: 0, failed: 0, errors: ['No tokens to send to'] };
+  }
 
   const messages = tokens.map(token => ({
     to: token,
@@ -38,7 +35,9 @@ async function sendViaExpoPush(tokens, { title, body, data, image }) {
   }
 
   let totalSent = 0;
+  let totalFailed = 0;
   const errors = [];
+  const invalidTokens = [];
 
   for (const chunk of chunks) {
     try {
@@ -47,6 +46,7 @@ async function sendViaExpoPush(tokens, { title, body, data, image }) {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
+        timeout: 30000,
       });
 
       if (response.data && response.data.data) {
@@ -54,24 +54,39 @@ async function sendViaExpoPush(tokens, { title, body, data, image }) {
           if (ticket.status === 'ok') {
             totalSent++;
           } else {
+            totalFailed++;
             errors.push({ token: chunk[idx].to, error: ticket.message });
-            // Remove invalid tokens
             if (ticket.details && ticket.details.error === 'DeviceNotRegistered') {
-              tokenStore.delete(chunk[idx].to);
+              invalidTokens.push(chunk[idx].to);
             }
           }
         });
       }
     } catch (err) {
       logger.error('Expo Push API error:', err.message);
+      totalFailed += chunk.length;
       errors.push({ error: err.message });
     }
   }
 
-  return { sent: totalSent, errors: errors.length > 0 ? errors : undefined };
+  // Clean up invalid tokens from persistent store
+  if (invalidTokens.length > 0) {
+    tokenStore.deleteTokens(invalidTokens);
+    logger.info(`Removed ${invalidTokens.length} invalid tokens`);
+  }
+
+  return {
+    sent: totalSent,
+    failed: totalFailed,
+    errors: errors.length > 0 ? errors : undefined,
+  };
 }
 
+// ──────────────────────────────────────────────────────────────
 // POST /api/v1/notifications/register
+// Called by the mobile app on launch to register the Expo push token
+// Body: { token: string, platform: 'ios' | 'android' }
+// ──────────────────────────────────────────────────────────────
 router.post('/register', asyncHandler(async (req, res) => {
   const { token, platform } = req.body;
 
@@ -81,100 +96,30 @@ router.post('/register', asyncHandler(async (req, res) => {
 
   const cleanToken = token.trim();
 
-  // Store token locally as fallback
-  tokenStore.set(cleanToken, {
-    platform: platform || 'unknown',
-    registeredAt: new Date().toISOString(),
-  });
-
-  // Try to forward to WP Plugin (non-blocking, don't fail if WP is unavailable)
-  let wpResponse = null;
-  try {
-    wpResponse = await wooCommerceClient.post('/register', {
-      token: cleanToken,
-      platform: platform || 'unknown'
-    }, {}, { namespace: 'muo-push/v1', auth: false });
-  } catch (wpError) {
-    logger.warn('WP plugin registration failed (token stored locally):', wpError.message || wpError);
+  // Validate Expo push token format
+  if (!cleanToken.startsWith('ExponentPushToken[') && !cleanToken.startsWith('ExpoPushToken[')) {
+    throw new ValidationError('Invalid Expo push token format');
   }
+
+  // Get user ID from JWT if authenticated (optional)
+  const userId = req.user ? req.user.id : null;
+
+  // Save to persistent store (survives server restart)
+  tokenStore.register(cleanToken, platform || 'android', userId);
+
+  logger.info(`Push token registered: ${cleanToken.substring(0, 30)}... (platform: ${platform || 'android'})`);
 
   res.json({
     success: true,
     message: 'Push token registered',
-    wp_synced: !!wpResponse,
   });
 }));
 
-// POST /api/v1/notifications/broadcast
-// Triggers the campaign defined in src/config/notificationCampaign.js
-router.post('/broadcast', asyncHandler(async (req, res) => {
-  if (!campaignConfig.enabled) {
-    return res.status(400).json({
-      success: false,
-      message: 'Campaign is disabled in src/config/notificationCampaign.js'
-    });
-  }
-
-  logger.info(`Broadcasting Notification: ${campaignConfig.title}`);
-
-  // Collect all registered tokens
-  const allTokens = Array.from(tokenStore.keys());
-
-  // Send directly via Expo Push API (reliable path)
-  const expoResult = await sendViaExpoPush(allTokens, {
-    title: campaignConfig.title,
-    body: campaignConfig.body,
-    image: campaignConfig.image,
-    data: campaignConfig.data,
-  });
-
-  // Also try WP plugin broadcast (non-blocking)
-  let wpResponse = null;
-  try {
-    wpResponse = await wooCommerceClient.post('/broadcast', {
-      title: campaignConfig.title,
-      body: campaignConfig.body,
-      image: campaignConfig.image,
-      data: campaignConfig.data
-    }, {}, { namespace: 'muo-push/v1', auth: false });
-  } catch (wpError) {
-    logger.warn('WP plugin broadcast failed:', wpError.message || wpError);
-  }
-
-  res.json({
-    success: true,
-    message: 'Broadcast triggered successfully',
-    config_used: {
-      title: campaignConfig.title,
-      body: campaignConfig.body,
-    },
-    expo_result: expoResult,
-    wp_response: wpResponse,
-    total_tokens: allTokens.length,
-  });
-}));
-
-// POST /api/v1/notifications/send
-// Send notification to specific tokens (for order updates, etc.)
-router.post('/send', asyncHandler(async (req, res) => {
-  const { tokens, title, body, data, image } = req.body;
-
-  if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
-    throw new ValidationError('tokens array is required');
-  }
-  if (!title || !body) {
-    throw new ValidationError('title and body are required');
-  }
-
-  const result = await sendViaExpoPush(tokens, { title, body, data, image });
-
-  res.json({
-    success: true,
-    ...result,
-  });
-}));
-
+// ──────────────────────────────────────────────────────────────
 // POST /api/v1/notifications/remove
+// Called by the mobile app on logout
+// Body: { token: string }
+// ──────────────────────────────────────────────────────────────
 router.post('/remove', asyncHandler(async (req, res) => {
   const { token } = req.body;
 
@@ -182,21 +127,94 @@ router.post('/remove', asyncHandler(async (req, res) => {
     throw new ValidationError('Device token is required');
   }
 
-  const cleanToken = token.trim();
+  tokenStore.remove(token.trim());
 
-  // Remove from local store
-  tokenStore.delete(cleanToken);
-
-  // Try WP plugin removal (non-blocking)
-  try {
-    await wooCommerceClient.post('/remove', {
-      token: cleanToken
-    }, {}, { namespace: 'muo-push/v1', auth: false });
-  } catch (wpError) {
-    logger.warn('WP plugin token removal failed:', wpError.message || wpError);
-  }
+  logger.info(`Push token removed: ${token.trim().substring(0, 30)}...`);
 
   res.json({ success: true, message: 'Token removed' });
+}));
+
+// ──────────────────────────────────────────────────────────────
+// POST /api/v1/notifications/send
+// Send notification to specific tokens or all devices
+// Body: { title, body, data?, tokens?, userId?, platform? }
+// ──────────────────────────────────────────────────────────────
+router.post('/send', asyncHandler(async (req, res) => {
+  const { tokens: specificTokens, title, body, data, image, userId, platform } = req.body;
+
+  if (!title || !body) {
+    throw new ValidationError('title and body are required');
+  }
+
+  let targetTokens;
+
+  if (specificTokens && Array.isArray(specificTokens) && specificTokens.length > 0) {
+    // Send to specific tokens
+    targetTokens = specificTokens;
+  } else if (userId) {
+    // Send to a specific user's devices
+    targetTokens = tokenStore.getUserTokens(userId);
+  } else {
+    // Send to all active tokens (optionally filtered by platform)
+    targetTokens = tokenStore.getActiveTokens(platform || null);
+  }
+
+  const result = await sendViaExpoPush(targetTokens, { title, body, data, image });
+
+  logger.info(`Notification sent: "${title}" - ${result.sent} delivered, ${result.failed} failed`);
+
+  res.json({
+    success: true,
+    ...result,
+    total_targeted: targetTokens.length,
+  });
+}));
+
+// ──────────────────────────────────────────────────────────────
+// POST /api/v1/notifications/broadcast
+// Send the campaign notification defined in notificationCampaign.js
+// ──────────────────────────────────────────────────────────────
+router.post('/broadcast', asyncHandler(async (req, res) => {
+  if (!campaignConfig.enabled) {
+    return res.status(400).json({
+      success: false,
+      message: 'Campaign is disabled in src/config/notificationCampaign.js',
+    });
+  }
+
+  logger.info(`Broadcasting: "${campaignConfig.title}"`);
+
+  const allTokens = tokenStore.getActiveTokens();
+
+  const result = await sendViaExpoPush(allTokens, {
+    title: campaignConfig.title,
+    body: campaignConfig.body,
+    image: campaignConfig.image,
+    data: campaignConfig.data,
+  });
+
+  res.json({
+    success: true,
+    message: 'Broadcast sent',
+    config_used: {
+      title: campaignConfig.title,
+      body: campaignConfig.body,
+    },
+    ...result,
+    total_tokens: allTokens.length,
+  });
+}));
+
+// ──────────────────────────────────────────────────────────────
+// GET /api/v1/notifications/stats
+// Get registered token stats
+// ──────────────────────────────────────────────────────────────
+router.get('/stats', asyncHandler(async (req, res) => {
+  res.json({
+    success: true,
+    active_tokens: tokenStore.getActiveCount(),
+    all_tokens: tokenStore.getAll(),
+  });
 }));
 
 module.exports = router;
