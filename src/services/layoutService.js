@@ -128,19 +128,7 @@ const getHomeLayout = async () => {
         }
       },
 
-      // Trending Videos Section
-      {
-        type: 'trending_videos',
-        title: 'Trending Now',
-        data: {
-          videos: instaVideos.map(v => ({
-            id: v.id,
-            imageUrl: v.thumbnail_url || v.media_url, 
-            title: v.caption ? v.caption.substring(0, 50) + (v.caption.length > 50 ? '...' : '') : 'Instagram Reel',
-            videoUrl: v.media_url
-          }))
-        }
-      },
+     
 
       {
   "type": "product_list",
@@ -185,7 +173,19 @@ const getHomeLayout = async () => {
           api_params: { orderby: 'rating', order: 'desc', per_page: 10 }
         }
       },
-
+ // Trending Videos Section
+      {
+        type: 'trending_videos',
+        title: 'Trending Now',
+        data: {
+          videos: instaVideos.map(v => ({
+            id: v.id,
+            imageUrl: v.thumbnail_url || v.media_url, 
+            title: v.caption ? v.caption.substring(0, 50) + (v.caption.length > 50 ? '...' : '') : 'Instagram Reel',
+            videoUrl: v.media_url
+          }))
+        }
+      },
       // Best Sellers Section (using existing product_list)
       {
         type: 'product_list',
