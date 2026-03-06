@@ -17,30 +17,30 @@ const getHomeLayout = async () => {
         data: {
           slides: [
             {
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-10.webp',
-              badge: { text: 'New Collection', color: '#661F1D' },
-              title: 'Summer',
-              titleAccent: 'Essentials',
-              description: 'Discover the latest trends for the season with our curated collection.',
-              ctaText: 'Shop Now',
+              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/App-Assets-2-1.webp',
+              // badge: { text: 'New Collection', color: '#661F1D' },
+              // title: 'Summer',
+              // titleAccent: 'Essentials',
+              // description: 'Discover the latest trends for the season with our curated collection.',
+              // ctaText: 'Shop Now',
               action: { type: 'filter', value: 'featured', title: 'Featured' }
             },
             {
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-5.webp',
-              badge: { text: 'Premium Range', color: '#D4AF37' },
-              title: 'Lipstick',
-              titleAccent: 'Love',
-              description: 'Bold colors and lasting formulas for every occasion.',
-              ctaText: 'Explore',
+              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/App-Assets-3-1.webp',
+              // badge: { text: 'Premium Range', color: '#D4AF37' },
+              // title: 'Lipstick',
+              // titleAccent: 'Love',
+              // description: 'Bold colors and lasting formulas for every occasion.',
+              // ctaText: 'Explore',
               action: { type: 'category', value: 92, title: 'Lipsticks' }
             },
             {
-              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-4.webp',
-              badge: { text: 'Up to 50% Off', color: '#EF4444' },
-              title: 'Flash',
-              titleAccent: 'Sale',
-              description: 'Limited time offers on your favorite products.',
-              ctaText: 'Shop Sale',
+              imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/App-Assets-1-1.webp',
+              // badge: { text: 'Up to 50% Off', color: '#EF4444' },
+              // title: 'Flash',
+              // titleAccent: 'Sale',
+              // description: 'Limited time offers on your favorite products.',
+              // ctaText: 'Shop Sale',
               action: { type: 'filter', value: 'on_sale', title: 'Sale' }
             }
           ],
