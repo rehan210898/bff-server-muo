@@ -79,7 +79,7 @@ async function sendViaExpoPush(tokens, { title, body, data, image }) {
   return {
     sent: totalSent,
     failed: totalFailed,
-    errors: errors.length > 0 ? errors : undefined,
+    errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
   };
 }
 
@@ -168,6 +168,7 @@ router.post('/send', asyncHandler(async (req, res) => {
     success: true,
     ...result,
     total_targeted: targetTokens.length,
+    tokens_used: targetTokens.map(t => t.substring(0, 30) + '...'),
   });
 }));
 
