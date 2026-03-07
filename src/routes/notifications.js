@@ -18,16 +18,25 @@ async function sendViaExpoPush(tokens, { title, body, data, image }) {
     return { sent: 0, failed: 0, errors: ['No tokens to send to'] };
   }
 
-  const messages = tokens.map(token => ({
-    to: token,
-    sound: 'default',
-    title,
-    body,
-    data: data || {},
-    ...(image ? { image } : {}),
-    priority: 'high',
-    channelId: 'default',
-  }));
+  const messages = tokens.map(token => {
+    const msg = {
+      to: token,
+      sound: 'default',
+      title,
+      body,
+      data: data || {},
+      priority: 'high',
+      channelId: 'default',
+    };
+
+    if (image) {
+      msg.richContent = {
+        image: image,
+      };
+    }
+
+    return msg;
+  });
 
   // Expo API accepts batches of up to 100
   const chunks = [];
