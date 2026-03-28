@@ -1,10 +1,5 @@
 const wooCommerceClient = require('./woocommerceClient');
-const instagramService = require('./instagramService');
 const logger = require('../utils/logger');
-const cache = require('../utils/cache');
-
-const WP_LAYOUT_CACHE_KEY = 'wp_home_layout';
-const WP_LAYOUT_CACHE_TTL = 300; // 5 minutes
 
 /**
  * Fetch home layout from WordPress custom endpoint.
@@ -33,46 +28,9 @@ const fetchLayoutFromWordPress = async () => {
 };
 
 /**
- * Process layout sections that need dynamic data (e.g., Instagram videos, flash sale timer).
- */
-const enrichLayout = async (layout) => {
-  const enriched = [];
-
-  for (const section of layout) {
-    if (section.type === 'trending_videos') {
-      // Fetch Instagram videos dynamically
-      try {
-        const instaVideos = await instagramService.getLatestVideos(6);
-        enriched.push({
-          ...section,
-          data: {
-            ...section.data,
-            videos: instaVideos.map(v => ({
-              id: v.id,
-              imageUrl: v.thumbnail_url || v.media_url,
-              title: v.caption ? v.caption.substring(0, 50) + (v.caption.length > 50 ? '...' : '') : 'Instagram Reel',
-              videoUrl: v.media_url
-            }))
-          }
-        });
-      } catch (error) {
-        logger.warn('Layout Service: Failed to fetch Instagram videos: ' + error.message);
-        enriched.push(section);
-      }
-    } else {
-      enriched.push(section);
-    }
-  }
-
-  return enriched;
-};
-
-/**
  * Hardcoded fallback layout — used when WordPress layout is not configured.
  */
-const getFallbackLayout = async () => {
-  const instaVideos = await instagramService.getLatestVideos(6);
-
+const getFallbackLayout = () => {
   return [
     // Hero Carousel
     {
@@ -127,14 +85,11 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // Season Favorites (single section — duplicates removed)
+    // Season Favorites — slider with custom images
     {
-      type: 'product_list',
+      type: 'product_slider_image',
       title: 'Season Favorites',
       data: {
-        query_type: 'ids',
-        card_style: 'image_only',
-        layout: 'slider_2_5',
         ids: [9199, 9107, 9191, 9099, 9156, 9122, 9134, 9117, 9164, 9183],
         images: [
           'https://makeupocean.com/wp-content/uploads/2026/03/Translucent-Loose-Powder.webp',
@@ -151,7 +106,7 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // Flash Sale (fixed end time instead of Date.now())
+    // Flash Sale (fixed end time)
     {
       type: 'flash_sale',
       title: 'Flash Sale',
@@ -164,14 +119,11 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // Products In Spotlight
+    // Products In Spotlight — slider with custom images
     {
-      type: 'product_list',
+      type: 'product_slider_image',
       title: 'Products In Spotlight',
       data: {
-        query_type: 'ids',
-        card_style: 'image_only',
-        layout: 'slider_2_5',
         ids: [9117, 9191, 9107, 9199, 9134, 9122, 9156, 9164, 9099, 9183],
         images: [
           'https://makeupocean.com/wp-content/uploads/2026/03/Untitled-design-20.webp',
@@ -188,48 +140,42 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // Suggested For You
-    {
-      type: 'top_rated',
-      title: 'Suggested For You',
-      data: {
-        query_type: 'top_rated',
-        api_params: { orderby: 'rating', order: 'desc', per_page: 10 }
-      }
-    },
-
-    // Trending Videos
+    // Trending Videos — provide your own video URLs in WordPress
     {
       type: 'trending_videos',
       title: 'Trending Now',
       data: {
-        videos: instaVideos.map(v => ({
-          id: v.id,
-          imageUrl: v.thumbnail_url || v.media_url,
-          title: v.caption ? v.caption.substring(0, 50) + (v.caption.length > 50 ? '...' : '') : 'Instagram Reel',
-          videoUrl: v.media_url
-        }))
+        videos: [
+          {
+            id: 1,
+            imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/video-thumb-1.webp',
+            title: 'Summer Glow Tutorial',
+            videoUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/video1.mp4'
+          },
+          {
+            id: 2,
+            imageUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/video-thumb-2.webp',
+            title: 'Lipstick Shades Guide',
+            videoUrl: 'https://makeupocean.com/wp-content/uploads/2026/03/video2.mp4'
+          }
+        ]
       }
     },
 
-    // Top Picks
+    // Top Picks — slider with default cards
     {
-      type: 'product_list',
+      type: 'product_slider',
       title: 'Top Picks of the Month',
       data: {
-        query_type: 'best_selling',
-        api_params: { per_page: 8 }
+        ids: [9122, 9134, 9099, 9199, 9164, 9117, 9156, 9191]
       }
     },
 
-    // Exclusive Deals
+    // Exclusive Deals — slider with custom images
     {
-      type: 'product_list',
+      type: 'product_slider_image',
       title: 'Exclusive Deals',
       data: {
-        query_type: 'ids',
-        card_style: 'image_only',
-        layout: 'slider_2_5',
         ids: [9122, 9134, 9099, 9199, 9164, 9117, 9156, 9191, 9183, 9107],
         images: [
           'https://makeupocean.com/wp-content/uploads/2026/03/product_image-p100014-shade-01-natural-tint-0835.png',
@@ -273,13 +219,12 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // New Arrivals
+    // New Arrivals — slider with default cards
     {
-      type: 'product_list',
+      type: 'product_slider',
       title: 'New Arrivals',
       data: {
-        query_type: 'date',
-        api_params: { per_page: 8 }
+        ids: [9199, 9191, 9183, 9164, 9156, 9134, 9122, 9117]
       }
     },
 
@@ -293,25 +238,20 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // Trending Mini's
+    // Trending Mini's — slider with default cards
     {
-      type: 'product_list',
+      type: 'product_slider',
       title: "Trending Mini's",
       data: {
-        query_type: 'ids',
-        layout: 'slider_2_5',
         ids: [9199, 9191, 9183, 9164, 9156, 9134]
       }
     },
 
-    // Exclusive Looks
+    // Exclusive Looks — slider with custom images
     {
-      type: 'product_list',
+      type: 'product_slider_image',
       title: 'Exclusive Looks',
       data: {
-        query_type: 'ids',
-        layout: 'slider_2_5',
-        card_style: 'image_only',
         ids: [9122, 9117, 9107, 9099, 9089, 9084],
         images: [
           'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp',
@@ -324,14 +264,11 @@ const getFallbackLayout = async () => {
       }
     },
 
-    // Grid Collection 1
+    // Grid 3x3 with custom images
     {
-      type: 'product_list',
-      title: 'Grid Collection 1',
+      type: 'product_grid_3x3_image',
+      title: 'Grid Collection',
       data: {
-        query_type: 'ids',
-        card_style: 'image_only',
-        layout: 'grid_3_col',
         ids: [9199, 9191, 9183, 9164, 9156, 9134],
         images: [
           'https://makeupocean.com/wp-content/uploads/2026/01/img-2-18.webp',
@@ -340,25 +277,24 @@ const getFallbackLayout = async () => {
           'https://makeupocean.com/wp-content/uploads/2026/01/img-2-16.webp',
           'https://makeupocean.com/wp-content/uploads/2026/01/img-2-15.webp',
           'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-9.webp'
-        ]
+        ],
+        background: '#F8F5F0'
       }
     },
 
-    // Grid Collection 2
+    // Grid 2x2 with custom images
     {
-      type: 'product_list',
-      title: 'Grid Collection 2',
+      type: 'product_grid_2x2_image',
+      title: 'Must Haves',
       data: {
-        query_type: 'ids',
-        card_style: 'image_only',
-        layout: 'grid_2_col',
         ids: [9199, 9191, 9183, 9164],
         images: [
           'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-8.webp',
           'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-3.webp',
           'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-2.webp',
           'https://makeupocean.com/wp-content/uploads/2026/02/unnamed-1.webp'
-        ]
+        ],
+        background: '#FFF0F5'
       }
     }
   ];
@@ -372,15 +308,13 @@ const getHomeLayout = async () => {
     const wpLayout = await fetchLayoutFromWordPress();
 
     if (wpLayout) {
-      // WordPress layout found — enrich dynamic sections (Instagram, etc.)
-      const enrichedLayout = await enrichLayout(wpLayout);
-      logger.info('Layout Service: Returning WordPress layout (' + enrichedLayout.length + ' sections)');
-      return enrichedLayout;
+      logger.info('Layout Service: Returning WordPress layout (' + wpLayout.length + ' sections)');
+      return wpLayout;
     }
 
     // Step 2: Fallback to hardcoded layout
     logger.info('Layout Service: Using fallback hardcoded layout');
-    const fallbackLayout = await getFallbackLayout();
+    const fallbackLayout = getFallbackLayout();
     logger.info('Layout Service: Returning fallback layout (' + fallbackLayout.length + ' sections)');
     return fallbackLayout;
 
@@ -390,6 +324,66 @@ const getHomeLayout = async () => {
   }
 };
 
+/**
+ * Fetch category layout from WordPress custom endpoint.
+ * Returns array of { id, name, image } for the categories screen.
+ */
+const fetchCategoryLayoutFromWordPress = async () => {
+  try {
+    const data = await wooCommerceClient.get(
+      '/app-category-layout',
+      {},
+      { namespace: 'muo/v1', useCache: false, auth: false }
+    );
+
+    if (data && data.success && Array.isArray(data.data)) {
+      logger.info('Layout Service: Loaded category layout from WordPress (' + data.data.length + ' categories)');
+      return data.data;
+    }
+
+    logger.info('Layout Service: No WordPress category layout configured');
+    return null;
+  } catch (error) {
+    logger.warn('Layout Service: Could not fetch category layout from WordPress: ' + error.message);
+    return null;
+  }
+};
+
+const getCategoryLayout = async () => {
+  try {
+    // Try WordPress first
+    const wpCategories = await fetchCategoryLayoutFromWordPress();
+    if (wpCategories) {
+      return wpCategories;
+    }
+
+    // Fallback: fetch from WooCommerce and return all with count > 0
+    logger.info('Layout Service: Using WooCommerce categories as fallback');
+    const wcCategories = await wooCommerceClient.get('/products/categories', {
+      per_page: 100,
+      hide_empty: true,
+      orderby: 'name',
+      order: 'asc'
+    });
+
+    if (Array.isArray(wcCategories)) {
+      return wcCategories
+        .filter(c => (c.count || 0) > 0)
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          image: c.image ? c.image.src : null
+        }));
+    }
+
+    return [];
+  } catch (error) {
+    logger.error('Error getting category layout: ' + error.message);
+    return [];
+  }
+};
+
 module.exports = {
-  getHomeLayout
+  getHomeLayout,
+  getCategoryLayout
 };

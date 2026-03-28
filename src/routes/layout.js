@@ -7,16 +7,17 @@ const cache = require('../utils/cache');
 const LAYOUT_CACHE_KEY = 'home_layout';
 const LAYOUT_CACHE_TTL = 300; // 5 minutes
 
+const CATEGORY_LAYOUT_CACHE_KEY = 'category_layout';
+const CATEGORY_LAYOUT_CACHE_TTL = 300; // 5 minutes
+
 /**
  * @route   GET /api/v1/layout/home
  * @desc    Get dynamic home screen layout
  * @access  Public
  */
 router.get('/home', asyncHandler(async (req, res) => {
-  // Check cache first for faster response
   const cached = await cache.get(LAYOUT_CACHE_KEY);
   if (cached) {
-    // Set cache-control header for client-side caching
     res.set('Cache-Control', 'public, max-age=300');
     return res.json({
       success: true,
@@ -26,13 +27,38 @@ router.get('/home', asyncHandler(async (req, res) => {
 
   const layout = await layoutService.getHomeLayout();
 
-  // Cache the layout
   await cache.set(LAYOUT_CACHE_KEY, layout, LAYOUT_CACHE_TTL);
 
   res.set('Cache-Control', 'public, max-age=300');
   res.json({
     success: true,
     data: layout
+  });
+}));
+
+/**
+ * @route   GET /api/v1/layout/categories
+ * @desc    Get managed category list (id + image from WordPress)
+ * @access  Public
+ */
+router.get('/categories', asyncHandler(async (req, res) => {
+  const cached = await cache.get(CATEGORY_LAYOUT_CACHE_KEY);
+  if (cached) {
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.json({
+      success: true,
+      data: cached
+    });
+  }
+
+  const categories = await layoutService.getCategoryLayout();
+
+  await cache.set(CATEGORY_LAYOUT_CACHE_KEY, categories, CATEGORY_LAYOUT_CACHE_TTL);
+
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    success: true,
+    data: categories
   });
 }));
 
