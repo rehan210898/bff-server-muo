@@ -96,6 +96,14 @@ async function notifyUser(userId, orderId, { title, body, data }) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// GET /api/v1/shiprocket/webhook
+// Shiprocket sends a GET request to verify the webhook URL exists
+// ──────────────────────────────────────────────────────────────
+router.get('/webhook', (req, res) => {
+  res.json({ success: true, message: 'Shiprocket webhook endpoint active' });
+});
+
+// ──────────────────────────────────────────────────────────────
 // POST /api/v1/shiprocket/webhook
 // Receives shipment status updates from Shiprocket
 // Configure this URL in Shiprocket Dashboard → Settings → Webhooks
