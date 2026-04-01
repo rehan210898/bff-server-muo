@@ -32,7 +32,7 @@ const paymentRoutes = require('./routes/payment');
 const storeRoutes = require('./routes/store');
 const configRoutes = require('./routes/config');
 const notificationRoutes = require('./routes/notifications');
-const shiprocketRoutes = require('./routes/shiprocket');
+const wooWebhookRoutes = require('./routes/woowebhook');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -154,7 +154,7 @@ const noCache = (req, res, next) => {
 
 // Public routes (no auth required)
 app.use(`/api/${API_VERSION}/health`, healthRoutes);
-app.use(`/api/${API_VERSION}/shiprocket`, noCache, shiprocketRoutes);
+app.use(`/api/${API_VERSION}/woowebhook`, noCache, wooWebhookRoutes);
 
 // API Key Validation Middleware (for all other routes)
 app.use(`/api/${API_VERSION}`, validateApiKey);

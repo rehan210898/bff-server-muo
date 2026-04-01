@@ -17,7 +17,7 @@ const validateApiKey = (req, res, next) => {
     '/auth/google/callback',
     '/auth/verify-email-redirect',
     '/health',
-    '/shiprocket/webhook'
+    '/woowebhook/order-updated'
   ];
 
   // Check if current path starts with any public path
