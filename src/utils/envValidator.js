@@ -51,6 +51,9 @@ const envSchema = Joi.object({
   UPSTASH_REDIS_URL: Joi.string().uri().optional(),
   UPSTASH_REDIS_TOKEN: Joi.string().optional(),
 
+  // Shiprocket (Optional)
+  SHIPROCKET_WEBHOOK_TOKEN: Joi.string().optional(),
+
   // Cache (Optional)
   CACHE_TTL_SECONDS: Joi.number().default(300),
   CACHE_CHECK_PERIOD_SECONDS: Joi.number().default(600),
