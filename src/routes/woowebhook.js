@@ -95,6 +95,11 @@ function verifyWooCommerceSignature(payload, signature, secret) {
   return hash === signature;
 }
 
+// GET — WooCommerce pings this URL to verify it exists when saving the webhook
+router.get('/order-updated', (req, res) => {
+  res.json({ success: true, message: 'WooCommerce webhook endpoint active' });
+});
+
 // ──────────────────────────────────────────────────────────────
 // POST /api/v1/woowebhook/order-updated
 // Receives WooCommerce webhook for order status changes
