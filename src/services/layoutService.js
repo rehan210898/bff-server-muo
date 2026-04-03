@@ -372,6 +372,7 @@ const getCategoryLayout = async () => {
         .map(c => ({
           id: c.id,
           name: c.name,
+          parent: c.parent || 0,
           image: c.image ? c.image.src : null
         }));
     }
