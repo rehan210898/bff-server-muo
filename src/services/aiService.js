@@ -464,17 +464,43 @@ class AIService {
   /**
    * Build Gemini contents array from conversation history.
    * Gemini uses 'user' and 'model' roles (not 'assistant').
+   * IMPORTANT: Gemini requires strictly alternating user/model turns.
+   * Consecutive same-role messages are merged, and system messages are skipped.
    */
   _buildContents(history, currentMessage) {
     const maxHistory = parseInt(process.env.CHAT_MAX_HISTORY) || 20;
     const trimmed = history.slice(-maxHistory);
 
-    const contents = trimmed.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    }));
+    const contents = [];
 
-    contents.push({ role: 'user', parts: [{ text: currentMessage }] });
+    for (const msg of trimmed) {
+      // Skip system messages — Gemini doesn't support them in contents
+      if (msg.role === 'system') continue;
+
+      const role = msg.role === 'user' ? 'user' : 'model';
+      const last = contents[contents.length - 1];
+
+      // Merge consecutive same-role messages (Gemini requires alternating turns)
+      if (last && last.role === role) {
+        last.parts[0].text += '\n' + msg.content;
+      } else {
+        contents.push({ role, parts: [{ text: msg.content }] });
+      }
+    }
+
+    // Merge current message into last user turn or create new one
+    const last = contents[contents.length - 1];
+    if (last && last.role === 'user') {
+      last.parts[0].text += '\n' + currentMessage;
+    } else {
+      contents.push({ role: 'user', parts: [{ text: currentMessage }] });
+    }
+
+    // Gemini requires first message to be 'user' — if starts with 'model', prepend empty user
+    if (contents.length > 0 && contents[0].role === 'model') {
+      contents.unshift({ role: 'user', parts: [{ text: '(conversation started)' }] });
+    }
+
     return contents;
   }
 }
