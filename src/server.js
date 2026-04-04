@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server: SocketIO } = require('socket.io');
 const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
@@ -10,6 +12,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { validateApiKey } = require('./middleware/auth');
 const logger = require('./utils/logger');
 const { validateEnv } = require('./utils/envValidator');
+const { initChatHandler } = require('./services/chatHandler');
 
 // Validate environment variables on startup
 if (!validateEnv()) {
@@ -33,10 +36,37 @@ const storeRoutes = require('./routes/store');
 const configRoutes = require('./routes/config');
 const notificationRoutes = require('./routes/notifications');
 const wooWebhookRoutes = require('./routes/woowebhook');
+const adminChatRoutes = require('./routes/admin-chat');
 
 const app = express();
+const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const API_VERSION = process.env.API_VERSION || 'v1';
+
+// ─── Socket.io Setup ─────────────────────────────────────────────────
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:19006'];
+
+const io = new SocketIO(httpServer, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true
+  },
+  pingInterval: 25000,
+  pingTimeout: 20000,
+  maxHttpBufferSize: 1e6  // 1MB max message size
+});
+
+// Initialize chat handler & store sessions on app for REST access
+const { sessions: chatSessions } = initChatHandler(io);
+app.set('chatSessions', chatSessions);
 
 // Trust proxy - important for rate limiting behind reverse proxies
 app.set('trust proxy', 1);
@@ -64,11 +94,7 @@ app.use(helmet({
   }
 }));
 
-// CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['http://localhost:19006'];
-
+// CORS Configuration (allowedOrigins defined above with Socket.io)
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
@@ -173,6 +199,7 @@ app.use(`/api/${API_VERSION}/payment`, noCache, paymentRoutes);
 app.use(`/api/${API_VERSION}/store`, noCache, storeRoutes);
 app.use(`/api/${API_VERSION}/config`, cacheControl(1800), configRoutes);
 app.use(`/api/${API_VERSION}/notifications`, noCache, notificationRoutes);
+app.use(`/api/${API_VERSION}/admin-chat`, noCache, adminChatRoutes);
 
 // Root Route
 app.get('/', (req, res) => {
@@ -198,11 +225,13 @@ app.get('/', (req, res) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Graceful Shutdown
-const server = app.listen(PORT, () => {
+// Graceful Shutdown — use httpServer (Socket.io + Express)
+const server = httpServer.listen(PORT, () => {
   logger.info(`🚀 BFF Server running on port ${PORT}`);
   logger.info(`📱 Environment: ${process.env.NODE_ENV}`);
   logger.info(`🔗 API Base URL: http://localhost:${PORT}/api/${API_VERSION}`);
+  logger.info(`💬 Socket.io chat server ready`);
+  logger.info(`🖥️  Admin dashboard: http://localhost:${PORT}/api/${API_VERSION}/admin-chat`);
 });
 
 // Step 7: Server keep-alive & request timeouts
@@ -212,6 +241,7 @@ server.timeout = 60000;
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  io.close();
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
@@ -220,6 +250,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   logger.info('SIGINT signal received: closing HTTP server');
+  io.close();
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
