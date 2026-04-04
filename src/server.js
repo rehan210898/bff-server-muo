@@ -181,6 +181,7 @@ const noCache = (req, res, next) => {
 // Public routes (no auth required)
 app.use(`/api/${API_VERSION}/health`, healthRoutes);
 app.use(`/api/${API_VERSION}/woowebhook`, noCache, wooWebhookRoutes);
+app.use(`/api/${API_VERSION}/admin-chat`, noCache, adminChatRoutes);
 
 // API Key Validation Middleware (for all other routes)
 app.use(`/api/${API_VERSION}`, validateApiKey);
@@ -199,7 +200,6 @@ app.use(`/api/${API_VERSION}/payment`, noCache, paymentRoutes);
 app.use(`/api/${API_VERSION}/store`, noCache, storeRoutes);
 app.use(`/api/${API_VERSION}/config`, cacheControl(1800), configRoutes);
 app.use(`/api/${API_VERSION}/notifications`, noCache, notificationRoutes);
-app.use(`/api/${API_VERSION}/admin-chat`, noCache, adminChatRoutes);
 
 // Root Route
 app.get('/', (req, res) => {
