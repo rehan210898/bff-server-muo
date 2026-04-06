@@ -176,6 +176,22 @@ class AIService {
       return await this._callGemini(FAST_MODEL, contents, userContext, onStream);
     } catch (error) {
       logger.error('AI processMessage error:', error.message);
+
+      // Auto-escalate to human support on API limit/quota errors
+      const status = error.status || error.httpStatusCode || error.code;
+      const isLimitError = status === 429 || status === 'RESOURCE_EXHAUSTED' ||
+        /rate.limit|quota|too.many.requests/i.test(error.message);
+
+      if (isLimitError) {
+        logger.warn('AI API limit reached — auto-escalating to human support');
+        return {
+          text: "Our AI assistant is temporarily unavailable due to high demand. Let me connect you with our support team right away!",
+          products: [],
+          escalateHuman: true,
+          toolsUsed: []
+        };
+      }
+
       return {
         text: "I'm having trouble right now. Would you like me to connect you with our support team?",
         products: [],

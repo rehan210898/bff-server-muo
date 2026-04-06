@@ -5,8 +5,13 @@ const path = require('path');
 /**
  * GET /admin-chat
  * Serve the admin support dashboard HTML page
+ * Override CSP to allow inline scripts and WebSocket connections
  */
 router.get('/', (req, res) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:;"
+  );
   res.sendFile(path.join(__dirname, '..', 'views', 'admin-chat.html'));
 });
 

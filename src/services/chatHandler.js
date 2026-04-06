@@ -400,6 +400,26 @@ async function handleAIResponse(io, socket, session, message) {
     logger.error('AI response error:', error.message);
     socket.emit('chat:ai_typing', { typing: false });
 
+    // Auto-escalate to human support on API limit errors
+    const status = error.status || error.httpStatusCode || error.code;
+    const isLimitError = status === 429 || status === 'RESOURCE_EXHAUSTED' ||
+      /rate.limit|quota|too.many.requests/i.test(error.message);
+
+    if (isLimitError) {
+      logger.warn(`AI API limit reached for session ${session.id} — auto-escalating to human support`);
+      const limitMsg = {
+        id: msgId,
+        role: 'assistant',
+        content: "Our AI assistant is temporarily unavailable due to high demand. I'm connecting you with our support team right away!",
+        timestamp: Date.now(),
+        products: []
+      };
+      session.history.push(limitMsg);
+      socket.emit('chat:message', limitMsg);
+      switchToHuman(io, socket, session, 'AI API limit reached — auto-escalation');
+      return;
+    }
+
     const errorMsg = {
       id: msgId,
       role: 'assistant',
