@@ -384,7 +384,80 @@ const getCategoryLayout = async () => {
   }
 };
 
+/**
+ * Fetch category tree: main categories with nested subcategories.
+ * Used by the new vertical-tab category screen.
+ */
+const fetchCategoryTreeFromWordPress = async () => {
+  try {
+    const data = await wooCommerceClient.get(
+      '/app-category-tree',
+      {},
+      { namespace: 'muo/v1', useCache: false, auth: false }
+    );
+
+    if (data && data.success && Array.isArray(data.data)) {
+      logger.info('Layout Service: Loaded category tree from WordPress (' + data.data.length + ' main categories)');
+      return data.data;
+    }
+
+    logger.info('Layout Service: No WordPress category tree configured');
+    return null;
+  } catch (error) {
+    logger.warn('Layout Service: Could not fetch category tree from WordPress: ' + error.message);
+    return null;
+  }
+};
+
+const getCategoryTree = async () => {
+  try {
+    // Try WordPress first
+    const wpTree = await fetchCategoryTreeFromWordPress();
+    if (wpTree) {
+      return wpTree;
+    }
+
+    // Fallback: build tree from WooCommerce categories
+    logger.info('Layout Service: Building category tree from WooCommerce');
+    const wcCategories = await wooCommerceClient.get('/products/categories', {
+      per_page: 100,
+      hide_empty: true,
+      orderby: 'name',
+      order: 'asc'
+    });
+
+    if (!Array.isArray(wcCategories)) return [];
+
+    const active = wcCategories.filter(c => (c.count || 0) > 0);
+
+    // Separate main categories (parent=0) and subcategories
+    const mainCats = active.filter(c => c.parent === 0);
+    const subCats = active.filter(c => c.parent !== 0);
+
+    // Build tree
+    const tree = mainCats.map(main => ({
+      id: main.id,
+      name: main.name,
+      image: main.image ? main.image.src : null,
+      subcategories: subCats
+        .filter(sub => sub.parent === main.id)
+        .map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          image: sub.image ? sub.image.src : null
+        }))
+    }));
+
+    // Only return main categories that have subcategories, plus those without (they act as leaf categories)
+    return tree;
+  } catch (error) {
+    logger.error('Error getting category tree: ' + error.message);
+    return [];
+  }
+};
+
 module.exports = {
   getHomeLayout,
-  getCategoryLayout
+  getCategoryLayout,
+  getCategoryTree
 };

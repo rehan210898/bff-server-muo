@@ -1,96 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
 const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
 const { optionalJWT } = require('../middleware/auth');
 const campaignConfig = require('../config/notificationCampaign');
 const tokenStore = require('../services/tokenStore');
+const { sendViaExpoPush } = require('../services/pushService');
 const logger = require('../utils/logger');
-
-// Expo Push API endpoint
-const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
-
-/**
- * Send push notifications via Expo Push API
- */
-async function sendViaExpoPush(tokens, { title, body, data, image }) {
-  if (!tokens || tokens.length === 0) {
-    return { sent: 0, failed: 0, errors: ['No tokens to send to'] };
-  }
-
-  const messages = tokens.map(token => {
-    const msg = {
-      to: token,
-      sound: 'default',
-      title,
-      body,
-      data: data || {},
-      priority: 'high',
-      channelId: 'default',
-    };
-
-    if (image) {
-      msg.richContent = {
-        image: image,
-      };
-    }
-
-    return msg;
-  });
-
-  // Expo API accepts batches of up to 100
-  const chunks = [];
-  for (let i = 0; i < messages.length; i += 100) {
-    chunks.push(messages.slice(i, i + 100));
-  }
-
-  let totalSent = 0;
-  let totalFailed = 0;
-  const errors = [];
-  const invalidTokens = [];
-
-  for (const chunk of chunks) {
-    try {
-      const response = await axios.post(EXPO_PUSH_URL, chunk, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      });
-
-      if (response.data && response.data.data) {
-        response.data.data.forEach((ticket, idx) => {
-          if (ticket.status === 'ok') {
-            totalSent++;
-          } else {
-            totalFailed++;
-            errors.push({ token: chunk[idx].to, error: ticket.message });
-            if (ticket.details && ticket.details.error === 'DeviceNotRegistered') {
-              invalidTokens.push(chunk[idx].to);
-            }
-          }
-        });
-      }
-    } catch (err) {
-      logger.error('Expo Push API error:', err.message);
-      totalFailed += chunk.length;
-      errors.push({ error: err.message });
-    }
-  }
-
-  // Clean up invalid tokens from persistent store
-  if (invalidTokens.length > 0) {
-    tokenStore.deleteTokens(invalidTokens);
-    logger.info(`Removed ${invalidTokens.length} invalid tokens`);
-  }
-
-  return {
-    sent: totalSent,
-    failed: totalFailed,
-    errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
-  };
-}
 
 // ──────────────────────────────────────────────────────────────
 // POST /api/v1/notifications/register

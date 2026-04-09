@@ -10,6 +10,9 @@ const LAYOUT_CACHE_TTL = 300; // 5 minutes
 const CATEGORY_LAYOUT_CACHE_KEY = 'category_layout';
 const CATEGORY_LAYOUT_CACHE_TTL = 300; // 5 minutes
 
+const CATEGORY_TREE_CACHE_KEY = 'category_tree';
+const CATEGORY_TREE_CACHE_TTL = 300; // 5 minutes
+
 /**
  * @route   GET /api/v1/layout/home
  * @desc    Get dynamic home screen layout
@@ -59,6 +62,32 @@ router.get('/categories', asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: categories
+  });
+}));
+
+/**
+ * @route   GET /api/v1/layout/categories-tree
+ * @desc    Get category tree (main categories with nested subcategories)
+ * @access  Public
+ */
+router.get('/categories-tree', asyncHandler(async (req, res) => {
+  const cached = await cache.get(CATEGORY_TREE_CACHE_KEY);
+  if (cached) {
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.json({
+      success: true,
+      data: cached
+    });
+  }
+
+  const tree = await layoutService.getCategoryTree();
+
+  await cache.set(CATEGORY_TREE_CACHE_KEY, tree, CATEGORY_TREE_CACHE_TTL);
+
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    success: true,
+    data: tree
   });
 }));
 

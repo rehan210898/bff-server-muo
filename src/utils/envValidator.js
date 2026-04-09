@@ -58,6 +58,14 @@ const envSchema = Joi.object({
   CACHE_TTL_SECONDS: Joi.number().default(300),
   CACHE_CHECK_PERIOD_SECONDS: Joi.number().default(600),
 
+
+  // Admin
+  ADMIN_EMAILS: Joi.string().default(''),
+
+  // Botpress
+  BOTPRESS_BOT_ID: Joi.string().optional(),
+  BOTPRESS_CHECK_INTERVAL_MS: Joi.number().default(60000),
+
   // Deep Link
   APP_DEEP_LINK_SCHEME: Joi.string().default('muoapp'),
   API_URL: Joi.string().uri().optional(),

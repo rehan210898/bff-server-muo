@@ -134,9 +134,26 @@ const userRateLimit = (req, res, next) => {
   next();
 };
 
+/**
+ * Validate that the authenticated user is an admin (by email)
+ * Must be used after validateJWT
+ */
+const validateAdmin = (req, res, next) => {
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (!req.user || !adminEmails.includes(req.user.email?.toLowerCase())) {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required',
+      code: 'admin_required'
+    });
+  }
+  next();
+};
+
 module.exports = {
   validateApiKey,
   validateJWT,
   optionalJWT,
-  userRateLimit
+  userRateLimit,
+  validateAdmin
 };

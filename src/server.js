@@ -12,7 +12,8 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { validateApiKey } = require('./middleware/auth');
 const logger = require('./utils/logger');
 const { validateEnv } = require('./utils/envValidator');
-const { initChatHandler } = require('./services/chatHandler');
+const { initLiveChatHandler } = require('./services/liveChatHandler');
+const botpressMonitor = require('./services/botpressMonitor');
 
 // Validate environment variables on startup
 if (!validateEnv()) {
@@ -36,7 +37,7 @@ const storeRoutes = require('./routes/store');
 const configRoutes = require('./routes/config');
 const notificationRoutes = require('./routes/notifications');
 const wooWebhookRoutes = require('./routes/woowebhook');
-const adminChatRoutes = require('./routes/admin-chat');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -64,9 +65,12 @@ const io = new SocketIO(httpServer, {
   maxHttpBufferSize: 1e6  // 1MB max message size
 });
 
-// Initialize chat handler & store sessions on app for REST access
-const { sessions: chatSessions } = initChatHandler(io);
-app.set('chatSessions', chatSessions);
+
+// Initialize live chat handler & Botpress monitor
+const { sessions: liveChatSessions, getSessionList } = initLiveChatHandler(io);
+app.set('liveChatSessions', liveChatSessions);
+app.set('getSessionList', getSessionList);
+botpressMonitor.startPolling();
 
 // Trust proxy - important for rate limiting behind reverse proxies
 app.set('trust proxy', 1);
@@ -181,7 +185,8 @@ const noCache = (req, res, next) => {
 // Public routes (no auth required)
 app.use(`/api/${API_VERSION}/health`, healthRoutes);
 app.use(`/api/${API_VERSION}/woowebhook`, noCache, wooWebhookRoutes);
-app.use(`/api/${API_VERSION}/admin-chat`, noCache, adminChatRoutes);
+
+app.use(`/api/${API_VERSION}/chat`, noCache, chatRoutes);
 
 // API Key Validation Middleware (for all other routes)
 app.use(`/api/${API_VERSION}`, validateApiKey);
@@ -230,8 +235,7 @@ const server = httpServer.listen(PORT, () => {
   logger.info(`🚀 BFF Server running on port ${PORT}`);
   logger.info(`📱 Environment: ${process.env.NODE_ENV}`);
   logger.info(`🔗 API Base URL: http://localhost:${PORT}/api/${API_VERSION}`);
-  logger.info(`💬 Socket.io chat server ready`);
-  logger.info(`🖥️  Admin dashboard: http://localhost:${PORT}/api/${API_VERSION}/admin-chat`);
+  logger.info(`💬 Live chat (Socket.io) + Botpress monitor ready`);
 });
 
 // Step 7: Server keep-alive & request timeouts

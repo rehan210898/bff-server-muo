@@ -32,6 +32,10 @@ const registrationLimiter = rateLimit({
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d';
 
+// Admin email list for role detection
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+const isAdminEmail = (email) => ADMIN_EMAILS.includes((email || '').toLowerCase());
+
 let googleClient;
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI) {
   googleClient = new OAuth2Client(
@@ -156,7 +160,8 @@ router.get('/verify-email/:token', asyncHandler(async (req, res) => {
         username: newCustomer.username,
         firstName: newCustomer.first_name,
         lastName: newCustomer.last_name,
-        avatar: newCustomer.avatar_url
+        avatar: newCustomer.avatar_url,
+        isAdmin: isAdminEmail(newCustomer.email)
       }
     });
 
@@ -222,7 +227,8 @@ router.post('/login', authLimiter, validationRules.login, asyncHandler(async (re
       firstName: user.first_name,
       lastName: user.last_name,
       avatar: user.avatar_url,
-      username: user.username
+      username: user.username,
+      isAdmin: isAdminEmail(user.email)
     }
   });
 }));
@@ -291,7 +297,8 @@ router.post('/google/token', asyncHandler(async (req, res) => {
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         username: user.username || '',
-        avatar: user.avatar_url || picture || ''
+        avatar: user.avatar_url || picture || '',
+        isAdmin: isAdminEmail(user.email)
       }
     });
 
@@ -396,7 +403,8 @@ router.get('/google/callback', asyncHandler(async (req, res) => {
     firstName: user.first_name || '',
     lastName: user.last_name || '',
     username: user.username || '',
-    avatar: user.avatar_url || ''
+    avatar: user.avatar_url || '',
+    isAdmin: isAdminEmail(user.email) ? 'true' : 'false'
   });
   
   const appRedirect = `${scheme}://auth-callback?${params.toString()}`;
