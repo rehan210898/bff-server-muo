@@ -46,15 +46,17 @@ const API_VERSION = process.env.API_VERSION || 'v1';
 
 // ─── Socket.io Setup ─────────────────────────────────────────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:19006'];
 
 const io = new SocketIO(httpServer, {
   cors: {
     origin: (origin, callback) => {
+      // Allow: no origin (mobile apps, server-to-server), whitelisted origins, dev mode
       if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
+        logger.warn(`Socket.io CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
