@@ -49,6 +49,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:19006'];
 
+logger.info(`Socket.io CORS allowed origins: ${allowedOrigins.join(', ')}`);
+
 const io = new SocketIO(httpServer, {
   cors: {
     origin: (origin, callback) => {

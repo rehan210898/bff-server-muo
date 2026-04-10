@@ -12,10 +12,14 @@ function initLiveChatHandler(io) {
   io.use((socket, next) => {
     const apiKey = socket.handshake.auth?.apiKey;
     const token = socket.handshake.auth?.token;
+    const origin = socket.handshake.headers?.origin || 'no-origin';
+
+    logger.info(`Socket auth attempt from origin: ${origin}, apiKey: ${apiKey ? 'present' : 'missing'}, token: ${token ? 'present' : 'missing'}`);
 
     // Validate API key
     if (process.env.NODE_ENV !== 'development') {
       if (!apiKey || apiKey !== process.env.API_KEY) {
+        logger.warn(`Socket auth rejected: invalid API key from origin ${origin}`);
         return next(new Error('Invalid API key'));
       }
     }
@@ -25,8 +29,9 @@ function initLiveChatHandler(io) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.user = decoded;
+        logger.info(`Socket auth: JWT verified for ${decoded.email || 'unknown'} (role: ${decoded.role || 'user'})`);
       } catch (err) {
-        logger.debug('Invalid JWT in socket auth, continuing as guest');
+        logger.warn(`Socket auth: JWT verification failed - ${err.message}`);
       }
     }
 
